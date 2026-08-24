@@ -47,6 +47,17 @@ function clearUnsetVars(file) {
   );
 }
 
+function appendToCpmPackageLock(entry) {
+  const file = path.join(projectDir, "cpm-package-lock.cmake");
+  fs.writeFileSync(
+    file,
+    `${fs.readFileSync(file, { encoding: "utf-8" })}${entry}\n`,
+    {
+      encoding: "utf-8",
+    },
+  );
+}
+
 async function makeInitialProjectDir() {
   await promptUser({
     type: "text",
@@ -105,9 +116,33 @@ async function makeInitialProjectDir() {
         encoding: "utf-8",
       }),
     );
+
+    fs.writeFileSync(
+      path.join(projectDir, ".gitignore"),
+      "build/\nCPM_modules/",
+    );
   }
 
   return 0;
+}
+
+async function collectJuceVersions() {
+  const message = "Fetching available JUCE versions…";
+  process.stdout.write(message);
+
+  const releases = (
+    await (
+      await fetch("https://api.github.com/repos/juce-framework/JUCE/releases")
+    ).json()
+  ).map((release) => ({ title: release.name, value: release.tag_name }));
+
+  releases[0].title = releases[0].title + " (recommended)";
+  releases.splice(1, 0, { title: "Master branch", value: "master" });
+  releases.splice(2, 0, { title: "Develop branch", value: "develop" });
+
+  process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+  return releases;
 }
 
 async function addJuceDependency() {
@@ -130,6 +165,15 @@ async function addJuceDependency() {
     choices: juceDependencyChoices,
   });
 
+  if (config.juceDependencyType !== "submodule") {
+    await promptUser({
+      type: "select",
+      name: "juceVersion",
+      message: "Which version of JUCE?",
+      choices: await collectJuceVersions(),
+    });
+  }
+
   if (config.juceDependencyType === "cpm") {
     const message = "Fetching latest CPM.cmake…";
     process.stdout.write(message);
@@ -147,7 +191,7 @@ async function addJuceDependency() {
       encoding: "utf-8",
     });
     child_process.execSync(
-      `cmake -DCPM_PATH="${path.join(projectDir, "cmake")}" -P ${getCPMFile}`,
+      `cmake -DCPM_PATH="${path.join(projectDir, "cmake")}" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM -P ${getCPMFile}`,
       {
         cwd: projectDir,
       },
@@ -157,14 +201,19 @@ async function addJuceDependency() {
 
     setVar(
       projectCMakeLists,
-      "ADD_JUCE_DEPENDENCY",
-      'include(cmake/CPM.cmake)\nCPMAddPackage("gh:juce-framework/JUCE#master")',
+      "INIT_CPM",
+      `if(NOT CPM_SOURCE_CACHE)\n    set(CPM_SOURCE_CACHE "\$ENV{HOME}/.cache/CPM")\nendif()\n\ninclude(CPM)\nCPMUsePackageLock(cpm-package-lock.cmake)`,
     );
+
+    appendToCpmPackageLock(
+      `CPMDeclarePackage(JUCE\n    GITHUB_REPOSITORY juce-framework/JUCE\n    GIT_TAG ${config.juceVersion}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
+    );
+    setVar(projectCMakeLists, "ADD_JUCE_DEPENDENCY", `CPMGetPackage(JUCE)`);
   } else if (config.juceDependencyType === "fetchContent") {
     setVar(
       projectCMakeLists,
       "ADD_JUCE_DEPENDENCY",
-      "include(FetchContent)\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG master\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)",
+      `include(FetchContent)\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG ${config.juceVersion}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)`,
     );
   } else if (config.juceDependencyType === "submodule") {
     fs.mkdirSync(path.join(projectDir, "submodules"));
@@ -191,6 +240,12 @@ async function makeInitialCMakeProject() {
   setVar(projectCMakeLists, "PROJECT_ID", config.projectID);
   setVar(projectCMakeLists, "PROJECT_NAME", config.projectName);
 
+  fs.mkdirSync(path.join(projectDir, "cmake"));
+  fs.copyFileSync(
+    path.join(templatesDir, "CommonConfig.cmake"),
+    path.join(projectDir, "cmake", "CommonConfig.cmake"),
+  );
+
   await promptUser({
     type: "select",
     name: "projectType",
@@ -207,13 +262,12 @@ async function makeInitialCMakeProject() {
       type: "multiselect",
       name: "pluginFormats",
       message: "Which plugin formats does your project support?",
-      hint: "- Space to select. Return to submit",
       min: 1,
       choices: [
-        { title: "AAX", value: "AAX", selected: true },
         { title: "AU", value: "AU", selected: true },
         { title: "Standalone", value: "Standalone", selected: true },
         { title: "VST3", value: "VST3", selected: true },
+        { title: "AAX", value: "AAX" },
         { title: "AUv3", value: "AUv3" },
         { title: "LV2", value: "LV2" },
         { title: "Unity", value: "Unity" },
@@ -315,6 +369,18 @@ async function makeInitialCMakeProject() {
   return 0;
 }
 
+function makeInitialCommit() {
+  try {
+    child_process.execSync("git add --all", { cwd: projectDir });
+    child_process.execSync(
+      'git commit -m "Create initial project using create-juce-app"',
+      { cwd: projectDir },
+    );
+  } catch (err) {
+    console.error(err.stdout.toString());
+  }
+}
+
 function runCMake() {
   child_process.execSync(
     `cmake -B build -G Ninja -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM`,
@@ -331,6 +397,7 @@ async function main() {
     let result = await makeInitialProjectDir();
     if (result === 0) result = await makeInitialCMakeProject();
 
+    if (result === 0) makeInitialCommit();
     if (result === 0) runCMake();
   } catch (err) {
     console.error(err);
