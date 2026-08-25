@@ -11,6 +11,7 @@ let relativeSourceDir = "";
 let projectDir = "";
 let projectSourceDir = "";
 let projectCMakeLists = "";
+let testsCMakeLists = "";
 
 async function promptUser(promptObject) {
   config = {
@@ -145,6 +146,32 @@ async function collectJuceVersions() {
   return releases;
 }
 
+async function fetchLatestCPM() {
+  const message = "Fetching latest CPM.cmake…";
+  process.stdout.write(message);
+
+  const latestRelease = await fetch(
+    "https://api.github.com/repos/cpm-cmake/cpm.cmake/releases/latest",
+  );
+  const assets = await (
+    await fetch((await latestRelease.json()).assets_url)
+  ).json();
+  const getCPMAsset = assets.find((asset) => asset.name === "get_cpm.cmake");
+  const response = await fetch(getCPMAsset.browser_download_url);
+  const getCPMFile = path.join(os.tmpdir(), "get_cpm.cmake");
+  fs.writeFileSync(getCPMFile, await response.text(), {
+    encoding: "utf-8",
+  });
+  child_process.execSync(
+    `cmake -DCPM_PATH="${path.join(projectDir, "cmake")}" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM -P ${getCPMFile}`,
+    {
+      cwd: projectDir,
+    },
+  );
+
+  process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+}
+
 async function addJuceDependency() {
   let juceDependencyChoices = [
     { title: "Using CPM (recommended)", value: "cpm" },
@@ -160,70 +187,51 @@ async function addJuceDependency() {
 
   await promptUser({
     type: "select",
-    name: "juceDependencyType",
+    name: "dependencyType",
     message: "How do you want to add JUCE?",
     choices: juceDependencyChoices,
   });
 
-  if (config.juceDependencyType !== "submodule") {
-    await promptUser({
-      type: "select",
-      name: "juceVersion",
-      message: "Which version of JUCE?",
-      choices: await collectJuceVersions(),
-    });
-  }
-
-  if (config.juceDependencyType === "cpm") {
-    const message = "Fetching latest CPM.cmake…";
-    process.stdout.write(message);
-
-    const latestRelease = await fetch(
-      "https://api.github.com/repos/cpm-cmake/cpm.cmake/releases/latest",
-    );
-    const assets = await (
-      await fetch((await latestRelease.json()).assets_url)
-    ).json();
-    const getCPMAsset = assets.find((asset) => asset.name === "get_cpm.cmake");
-    const response = await fetch(getCPMAsset.browser_download_url);
-    const getCPMFile = path.join(os.tmpdir(), "get_cpm.cmake");
-    fs.writeFileSync(getCPMFile, await response.text(), {
-      encoding: "utf-8",
-    });
-    child_process.execSync(
-      `cmake -DCPM_PATH="${path.join(projectDir, "cmake")}" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM -P ${getCPMFile}`,
-      {
-        cwd: projectDir,
-      },
-    );
-
-    process.stdout.write("\r" + " ".repeat(message.length) + "\r");
-
+  if (config.dependencyType === "cpm") {
+    await fetchLatestCPM();
     setVar(
       projectCMakeLists,
       "INIT_CPM",
       `if(NOT CPM_SOURCE_CACHE)\n    set(CPM_SOURCE_CACHE "\$ENV{HOME}/.cache/CPM")\nendif()\n\ninclude(CPM)\nCPMUsePackageLock(cpm-package-lock.cmake)`,
     );
+  }
 
+  await promptUser({
+    type: "select",
+    name: "juceVersion",
+    message: "Which version of JUCE?",
+    choices: await collectJuceVersions(),
+  });
+
+  if (config.dependencyType === "cpm") {
     appendToCpmPackageLock(
       `CPMDeclarePackage(JUCE\n    GITHUB_REPOSITORY juce-framework/JUCE\n    GIT_TAG ${config.juceVersion}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
     );
     setVar(projectCMakeLists, "ADD_JUCE_DEPENDENCY", `CPMGetPackage(JUCE)`);
-  } else if (config.juceDependencyType === "fetchContent") {
+  } else if (config.dependencyType === "fetchContent") {
     setVar(
       projectCMakeLists,
       "ADD_JUCE_DEPENDENCY",
-      `include(FetchContent)\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG ${config.juceVersion}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)`,
+      `include(FetchContent)\n\nmessage(STATUS "Fetching JUCE (this may take a few minutes)...")\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG ${config.juceVersion}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)`,
     );
-  } else if (config.juceDependencyType === "submodule") {
+  } else if (config.dependencyType === "submodule") {
     fs.mkdirSync(path.join(projectDir, "submodules"));
 
     const message = "Cloning JUCE (this may take a few minutes)…";
     process.stdout.write(message);
     child_process.execSync(
       "git submodule add https://github.com/juce-framework/JUCE.git ./submodules/JUCE",
-      { cwd: projectDir },
+      { cwd: projectDir, stdio: "pipe" },
     );
+    child_process.execSync(`git checkout ${config.juceVersion}`, {
+      cwd: path.join(projectDir, "submodules", "JUCE"),
+      stdio: "pipe",
+    });
     process.stdout.write("\r" + " ".repeat(message.length) + "\r");
 
     setVar(
@@ -364,7 +372,138 @@ async function makeInitialCMakeProject() {
     setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_core");
   }
 
-  clearUnsetVars(projectCMakeLists);
+  return 0;
+}
+
+function addDependencyCatch2() {
+  if (config.dependencyType === "cpm") {
+    appendToCpmPackageLock(
+      "CPMDeclarePackage(Catch2\n    GITHUB_REPOSITORY catchorg/Catch2\n    GIT_TAG v3.16.0\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+    );
+    setVar(
+      testsCMakeLists,
+      "ADD_CATCH2",
+      "CPMGetPackage(Catch2)\ninclude(${Catch2_SOURCE_DIR}/extras/Catch.cmake)",
+    );
+  } else if (config.dependencyType === "fetchContent") {
+    setVar(
+      testsCMakeLists,
+      "ADD_CATCH2",
+      'message(STATUS "Fetching Catch2...")\nFetchContent_Declare(Catch2\n    GIT_REPOSITORY https://github.com/catchorg/Catch2.git\n    GIT_TAG v3.15.3\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(Catch2)\ninclude(${Catch2_SOURCE_DIR}/extras/Catch.cmake)',
+    );
+  } else if (config.dependencyType === "submodule") {
+    const message = "Cloning Catch2…";
+    process.stdout.write(message);
+    child_process.execSync(
+      "git submodule add https://github.com/catchorg/Catch2.git ./submodules/Catch2",
+      { cwd: projectDir },
+    );
+    process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+    setVar(
+      testsCMakeLists,
+      "ADD_CATCH2",
+      "add_subdirectory(\n    ${PROJECT_SOURCE_DIR}/submodules/Catch2\n    ${PROJECT_BINARY_DIR}/submodules/Catch2\n)\ninclude(${PROJECT_SOURCE_DIR}/submodules/Catch2/extras/Catch.cmake)",
+    );
+  }
+}
+
+function addDependencyGoogleTest() {
+  if (config.dependencyType === "cpm") {
+    appendToCpmPackageLock(
+      "CPMDeclarePackage(googletest\n    GITHUB_REPOSITORY google/googletest\n    GIT_TAG v1.18.0\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+    );
+    setVar(
+      testsCMakeLists,
+      "ADD_GOOGLETEST",
+      "CPMGetPackage(googletest)\ninclude(GoogleTest)",
+    );
+  } else if (config.dependencyType === "fetchContent") {
+    setVar(
+      testsCMakeLists,
+      "ADD_GOOGLETEST",
+      'message(STATUS "Fetching GoogleTest...")\nFetchContent_Declare(googletest\n    GIT_REPOSITORY https://github.com/google/googletest.git\n    GIT_TAG v1.18.0\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(googletest)\ninclude(GoogleTest)',
+    );
+  } else if (config.dependencyType === "submodule") {
+    const message = "Cloning GoogleTest…";
+    process.stdout.write(message);
+    child_process.execSync(
+      "git submodule add https://github.com/google/googletest.git ./submodules/googletest",
+      { cwd: projectDir },
+    );
+    process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+    setVar(
+      testsCMakeLists,
+      "ADD_GOOGLETEST",
+      "add_subdirectory(\n    ${PROJECT_SOURCE_DIR}/submodules/googletest\n    ${PROJECT_BINARY_DIR}/submodules/googletest\n)\ninclude(GoogleTest)",
+    );
+  }
+}
+
+async function addUnitTestFramework() {
+  await promptUser({
+    type: "select",
+    name: "unitTestFramework",
+    message: "Which unit-testing framework do you want to use?",
+    choices: [
+      { title: "Catch2", value: "catch2" },
+      { title: "GoogleTest", value: "googletest" },
+      { title: "JUCE's built-in API", value: "juce" },
+    ],
+  });
+
+  fs.mkdirSync(path.join(projectDir, "tests"));
+  testsCMakeLists = path.join(projectDir, "tests", "CMakeLists.txt");
+
+  if (config.unitTestFramework === "catch2") {
+    fs.copyFileSync(
+      path.join(templatesDir, "Catch2-CMakeLists.txt"),
+      testsCMakeLists,
+    );
+
+    addDependencyCatch2();
+
+    fs.copyFileSync(
+      path.join(templatesDir, "Catch2-Tests.cpp"),
+      path.join(projectDir, "tests", "Tests.cpp"),
+    );
+  } else if (config.unitTestFramework === "googletest") {
+    fs.copyFileSync(
+      path.join(templatesDir, "GoogleTest-CMakeLists.txt"),
+      testsCMakeLists,
+    );
+
+    addDependencyGoogleTest();
+
+    fs.copyFileSync(
+      path.join(templatesDir, "GoogleTest-Tests.cpp"),
+      path.join(projectDir, "tests", "Tests.cpp"),
+    );
+  } else if (config.unitTestFramework === "juce") {
+    fs.copyFileSync(
+      path.join(templatesDir, "JUCE-Tests-CMakeLists.txt"),
+      testsCMakeLists,
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "JUCE-Tests-main.cpp"),
+      path.join(projectDir, "tests", "main.cpp"),
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "JUCE-Tests.h"),
+      path.join(projectDir, "tests", "Tests.h"),
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "JUCE-Tests.cpp"),
+      path.join(projectDir, "tests", "Tests.cpp"),
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "JUCE-Tests-discovery.cmake"),
+      path.join(projectDir, "cmake", "DiscoverTests.cmake"),
+    );
+  }
+
+  setVar(testsCMakeLists, "PROJECT_ID", config.projectID);
 
   return 0;
 }
@@ -396,9 +535,16 @@ async function main() {
   try {
     let result = await makeInitialProjectDir();
     if (result === 0) result = await makeInitialCMakeProject();
+    if (result === 0) result = await addUnitTestFramework();
 
-    if (result === 0) makeInitialCommit();
-    if (result === 0) runCMake();
+    clearUnsetVars(projectCMakeLists);
+
+    if (result !== 0) {
+      console.error(`Ended with code ${result}`);
+    }
+
+    makeInitialCommit();
+    runCMake();
   } catch (err) {
     console.error(err);
   }

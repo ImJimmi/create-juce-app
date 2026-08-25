@@ -1,0 +1,12 @@
+VAR_ADD_GOOGLETEST
+
+add_executable(VAR_PROJECT_ID-unit-tests
+    ${PROJECT_SOURCE_DIR}/tests/Tests.cpp
+)
+
+target_link_libraries(VAR_PROJECT_ID-unit-tests
+PRIVATE
+    GTest::gtest_main
+)
+
+gtest_discover_tests(VAR_PROJECT_ID-unit-tests)

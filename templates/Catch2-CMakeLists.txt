@@ -1,0 +1,12 @@
+VAR_ADD_CATCH2
+
+add_executable(VAR_PROJECT_ID-unit-tests
+    ${PROJECT_SOURCE_DIR}/tests/Tests.cpp
+)
+
+target_link_libraries(VAR_PROJECT_ID-unit-tests
+PRIVATE
+    Catch2::Catch2WithMain
+)
+
+catch_discover_tests(VAR_PROJECT_ID-unit-tests)

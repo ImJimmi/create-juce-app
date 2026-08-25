@@ -50,7 +50,10 @@ PRIVATE
     $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-fdiagnostics-color=always>
 
     # Use maximum optimisations with aggressive math optimisations
-    $<$<AND:$<CXX_COMPILER_ID:AppleClang,Clang,GNU>,$<NOT:$<CONFIG:DEBUG>>>:-Ofast>
+    $<$<AND:$<CXX_COMPILER_ID:AppleClang,Clang,GNU>,$<NOT:$<CONFIG:DEBUG>>>:-ffast-math>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<CONFIG:DEBUG>>>:/fp:fast>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<CONFIG:DEBUG>>>:/Ox>
 )
+
+include(CTest)
+add_subdirectory(tests)

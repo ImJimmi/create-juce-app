@@ -1,0 +1,15 @@
+juce_add_console_app(VAR_PROJECT_ID-unit-tests)
+
+target_sources(VAR_PROJECT_ID-unit-tests
+PRIVATE
+    ${PROJECT_SOURCE_DIR}/tests/main.cpp
+    ${PROJECT_SOURCE_DIR}/tests/Tests.cpp
+)
+
+target_link_libraries(VAR_PROJECT_ID-unit-tests
+PRIVATE
+    juce::juce_core
+)
+
+include(DiscoverTests)
+juce_discover_unit_tests(VAR_PROJECT_ID-unit-tests)
