@@ -38,10 +38,7 @@ public:
 
     void prepareToPlay(double sampleRate, int blockSize) override
     {
-        mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,
-                                                                  blockSize,
-                                                                  getMainBusNumOutputChannels(),
-                                                                  apvts);
+        VAR_PREPARE_TO_PLAY_IMPL
     }
 
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
@@ -54,7 +51,7 @@ public:
             return;
         }
 
-        mainAudioProcessor->processBlock(buffer);
+        VAR_PROCESS_BLOCK_IMPL
     }
 
     void releaseResources() override

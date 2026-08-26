@@ -15,6 +15,35 @@ let projectSourceDir = "";
 let projectCMakeLists = "";
 let testsCMakeLists = "";
 
+const dotEnvFile = path.join(process.cwd(), ".env");
+if (fs.existsSync(dotEnvFile)) {
+  process.loadEnvFile(dotEnvFile);
+}
+
+const githubTokenArg = "--github-token=";
+const githubToken =
+  process.argv
+    .find((arg) => arg.startsWith(githubTokenArg))
+    ?.slice(githubTokenArg.length) ??
+  process.env.GITHUB_TOKEN ??
+  process.env.GH_TOKEN;
+
+async function fetchGitHubJson(url) {
+  const response = await fetch(url, {
+    headers: githubToken ? { Authorization: `Bearer ${githubToken}` } : {},
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      response.status === 403 || response.status === 429
+        ? `GitHub rate limit reached - provide a personal access token using ${githubTokenArg}<token>, $GITHUB_TOKEN, or $GH_TOKEN`
+        : `Request to ${url} failed with ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.json();
+}
+
 async function promptUser(promptObject) {
   config = {
     ...config,
@@ -138,9 +167,9 @@ async function collectJuceVersions() {
   process.stdout.write(message);
 
   const releases = (
-    await (
-      await fetch("https://api.github.com/repos/juce-framework/JUCE/releases")
-    ).json()
+    await fetchGitHubJson(
+      "https://api.github.com/repos/juce-framework/JUCE/releases",
+    )
   ).map((release) => ({ title: release.name, value: release.tag_name }));
 
   releases[0].title = releases[0].title + " (recommended)";
@@ -156,12 +185,10 @@ async function fetchLatestCPM() {
   const message = "Fetching latest CPM.cmake…";
   process.stdout.write(message);
 
-  const latestRelease = await fetch(
+  const latestRelease = await fetchGitHubJson(
     "https://api.github.com/repos/cpm-cmake/cpm.cmake/releases/latest",
   );
-  const assets = await (
-    await fetch((await latestRelease.json()).assets_url)
-  ).json();
+  const assets = await fetchGitHubJson(latestRelease.assets_url);
   const getCPMAsset = assets.find((asset) => asset.name === "get_cpm.cmake");
   const response = await fetch(getCPMAsset.browser_download_url);
   const getCPMFile = path.join(os.tmpdir(), "get_cpm.cmake");
@@ -288,6 +315,15 @@ async function makeInitialCMakeProject() {
         { title: "VST", value: "VST" },
       ],
     });
+    await promptUser({
+      type: "select",
+      name: "dspAPI",
+      message: "Which DSP API do you want to use?",
+      choices: [
+        { title: "Basic JUCE audio API", value: "basic" },
+        { title: "juce_dsp module", value: "juce_dsp" },
+      ],
+    });
   }
 
   await addJuceDependency();
@@ -309,6 +345,7 @@ async function makeInitialCMakeProject() {
       "PROJECT_ID",
       config.projectID,
     );
+
     fs.copyFileSync(
       path.join(templatesDir, "plugin-processor.h"),
       path.join(projectSourceDir, "Processor.h"),
@@ -318,11 +355,40 @@ async function makeInitialCMakeProject() {
       "PROJECT_ID",
       config.projectID,
     );
+
     fs.mkdirSync(path.join(projectSourceDir, "audio"));
-    fs.copyFileSync(
-      path.join(templatesDir, "plugin-main-audio-processor.h"),
-      path.join(projectSourceDir, "audio", "MainAudioProcessor.h"),
-    );
+    if (config.dspAPI === "basic") {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-basic.h"),
+        path.join(projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(projectSourceDir, "Processor.h"),
+        "PREPARE_TO_PLAY_IMPL",
+        "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  blockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
+      );
+      setVar(
+        path.join(projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "mainAudioProcessor->processBlock(buffer);",
+      );
+    } else if (config.dspAPI === "juce_dsp") {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-juce_dsp.h"),
+        path.join(projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(projectSourceDir, "Processor.h"),
+        "PREPARE_TO_PLAY_IMPL",
+        "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(blockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
+      );
+      setVar(
+        path.join(projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "juce::dsp::AudioBlock<float> block{ buffer };\n        juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
+      );
+    }
+
     fs.copyFileSync(
       path.join(templatesDir, "plugin-parameters.h"),
       path.join(projectSourceDir, "audio", "Parameters.h"),
