@@ -76,7 +76,7 @@ public:
 
     const juce::String getName() const override
     {
-        return PROJECT_NAME_STRING;
+        return PROJECT_NAME;
     }
 
     bool acceptsMidi() const override

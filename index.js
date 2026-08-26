@@ -206,13 +206,13 @@ async function fetchLatestCPM() {
 }
 
 async function addJuceDependency() {
-  let juceDependencyChoices = [
+  let dependencyChoices = [
     { title: "Using CPM (recommended)", value: "cpm" },
     { title: "Using FetchContent", value: "fetchContent" },
   ];
 
   if (config.initGit) {
-    juceDependencyChoices.push({
+    dependencyChoices.push({
       title: "As a git submodule",
       value: "submodule",
     });
@@ -221,8 +221,8 @@ async function addJuceDependency() {
   await promptUser({
     type: "select",
     name: "dependencyType",
-    message: "How do you want to add JUCE?",
-    choices: juceDependencyChoices,
+    message: "How do you want to add JUCE and other dependencies?",
+    choices: dependencyChoices,
   });
 
   if (config.dependencyType === "cpm") {
@@ -325,6 +325,17 @@ async function makeInitialCMakeProject() {
       ],
     });
   }
+
+  await promptUser({
+    type: "select",
+    name: "guiAPI",
+    message: "Which GUI API should your project use?",
+    choices: [
+      { title: "Traditional JUCE Components", value: "component" },
+      { title: "Web front-end", value: "webview" },
+      { title: "JIVE", value: "jive" },
+    ],
+  });
 
   await addJuceDependency();
 
@@ -433,6 +444,13 @@ async function makeInitialCMakeProject() {
     );
 
     setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_basics");
+
+    if (config.guiAPI === "component") {
+      fs.copyFileSync(
+        path.join(templatesDir, "gui-app-main-component-JUCE.h"),
+        path.join(projectSourceDir, "gui", "MainComponent.h"),
+      );
+    }
   } else if (config.projectType === "console") {
     setVar(
       projectCMakeLists,
@@ -603,7 +621,7 @@ function makeInitialCommit() {
 
 function runCMake() {
   child_process.execSync(
-    `cmake -B build -G Ninja -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM`,
+    `cmake -B build -G "Ninja Multi-Config" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM`,
     {
       cwd: projectDir,
       encoding: "utf-8",

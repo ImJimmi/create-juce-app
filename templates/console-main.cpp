@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
     juce::ConsoleApplication app;
 
     app.addHelpCommand("--help|-h", "Usage:", true);
-    app.addVersionCommand("--version|-v", PROJECT_VERSION_STRING);
+    app.addVersionCommand("--version|-v", PROJECT_VERSION);
 
     app.addCommand({ "--greet",
                      "--greet",
