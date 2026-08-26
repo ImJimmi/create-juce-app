@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import fs from "node:fs";
 import path from "node:path";
 import child_process from "node:child_process";
@@ -121,6 +123,10 @@ async function makeInitialProjectDir() {
     fs.writeFileSync(
       path.join(projectDir, ".gitignore"),
       "build/\nCPM_modules/",
+    );
+    fs.copyFileSync(
+      path.join(import.meta.dirname, ".clang-format"),
+      path.join(projectDir, ".clang-format"),
     );
   }
 
@@ -311,6 +317,15 @@ async function makeInitialCMakeProject() {
       path.join(projectSourceDir, "Processor.h"),
       "PROJECT_ID",
       config.projectID,
+    );
+    fs.mkdirSync(path.join(projectSourceDir, "audio"));
+    fs.copyFileSync(
+      path.join(templatesDir, "plugin-main-audio-processor.h"),
+      path.join(projectSourceDir, "audio", "MainAudioProcessor.h"),
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "plugin-parameters.h"),
+      path.join(projectSourceDir, "audio", "Parameters.h"),
     );
     fs.mkdirSync(path.join(projectSourceDir, "editor"));
     fs.copyFileSync(
@@ -529,27 +544,30 @@ function runCMake() {
       stdio: "inherit",
     },
   );
+  child_process.execSync(`cmake --build build`, {
+    cwd: projectDir,
+    encoding: "utf-8",
+    stdio: "inherit",
+  });
 }
 
-async function main() {
-  try {
-    let result = await makeInitialProjectDir();
-    if (result === 0) result = await makeInitialCMakeProject();
-    if (result === 0) result = await addUnitTestFramework();
+try {
+  let result = await makeInitialProjectDir();
+  if (result === 0) result = await makeInitialCMakeProject();
+  if (result === 0) result = await addUnitTestFramework();
 
-    clearUnsetVars(projectCMakeLists);
-
-    if (result !== 0) {
-      console.error(`Ended with code ${result}`);
-    }
-
-    makeInitialCommit();
-    runCMake();
-  } catch (err) {
-    console.error(err);
+  if (result !== 0) {
+    console.error(`Ended with code ${result}`);
+    process.exit(result);
   }
-}
 
-if (import.meta.url.endsWith(process.argv[1])) {
-  await main();
+  clearUnsetVars(projectCMakeLists);
+  clearUnsetVars(testsCMakeLists);
+  makeInitialCommit();
+
+  if (process.argv.includes("--debug")) {
+    runCMake();
+  }
+} catch (err) {
+  console.error(err);
 }

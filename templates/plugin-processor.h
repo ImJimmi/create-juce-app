@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VAR_PROJECT_ID/audio/MainAudioProcessor.h>
+#include <VAR_PROJECT_ID/audio/Parameters.h>
 #include <VAR_PROJECT_ID/editor/Editor.h>
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -13,6 +15,13 @@ public:
                 .withInput("Input", juce::AudioChannelSet::stereo(), true)
                 .withOutput("Output", juce::AudioChannelSet::stereo(), true)
         }
+        , apvts{
+            *this,
+            &undoManager,
+            "Parameters",
+            makeParameters(),
+        }
+        , bypass{ BypassParameter::getFrom(apvts) }
     {
     }
 
@@ -27,16 +36,30 @@ public:
                 || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo());
     }
 
-    void prepareToPlay(double, int) override
+    void prepareToPlay(double sampleRate, int blockSize) override
     {
+        mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,
+                                                                  blockSize,
+                                                                  getMainBusNumOutputChannels(),
+                                                                  apvts);
     }
 
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override
+    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
     {
+        const juce::ScopedNoDenormals noDenormals;
+
+        if (mainAudioProcessor == nullptr)
+        {
+            jassertfalse;
+            return;
+        }
+
+        mainAudioProcessor->processBlock(buffer);
     }
 
     void releaseResources() override
     {
+        mainAudioProcessor = nullptr;
     }
 
     juce::AudioProcessorEditor* createEditor() override
@@ -47,6 +70,11 @@ public:
     bool hasEditor() const override
     {
         return true;
+    }
+
+    juce::AudioProcessorParameter* getBypassParameter() const override
+    {
+        return &bypass;
     }
 
     const juce::String getName() const override
@@ -74,7 +102,6 @@ public:
         return 0.0;
     }
 
-    //==============================================================================
     int getNumPrograms() override
     {
         return 1;
@@ -98,7 +125,6 @@ public:
     {
     }
 
-    //==============================================================================
     void getStateInformation(juce::MemoryBlock&) override
     {
     }
@@ -108,4 +134,9 @@ public:
     }
 
 private:
+    juce::UndoManager undoManager;
+    juce::AudioProcessorValueTreeState apvts;
+    juce::AudioParameterBool& bypass;
+
+    std::unique_ptr<MainAudioProcessor> mainAudioProcessor;
 };

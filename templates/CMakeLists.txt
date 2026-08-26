@@ -53,6 +53,13 @@ PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:AppleClang,Clang,GNU>,$<NOT:$<CONFIG:DEBUG>>>:-ffast-math>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<CONFIG:DEBUG>>>:/fp:fast>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<NOT:$<CONFIG:DEBUG>>>:/Ox>
+
+    # Aggressive math optimisations make any use of infinity or NaN undefined, which JUCE's own sources rely on
+    $<$<AND:$<CXX_COMPILER_ID:AppleClang,Clang>,$<NOT:$<CONFIG:DEBUG>>>:-Wno-nan-infinity-disabled>
+
+    # Treat warnings as errors
+    $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Werror>
+    $<$<CXX_COMPILER_ID:MSVC>:/WX>
 )
 
 include(CTest)
