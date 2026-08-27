@@ -287,6 +287,8 @@ async function makeInitialCMakeProject() {
     path.join(projectDir, "cmake", "CommonConfig.cmake"),
   );
 
+  await addJuceDependency();
+
   await promptUser({
     type: "select",
     name: "projectType",
@@ -337,7 +339,37 @@ async function makeInitialCMakeProject() {
     ],
   });
 
-  await addJuceDependency();
+  if (config.guiAPI === "webview") {
+    await promptUser({
+      type: "select",
+      name: "webFramework",
+      message: "Which framework do you want to use?",
+      choices: [
+        { title: "Vanilla", value: "vanilla" },
+        { title: "Vue", value: "vue" },
+        { title: "React", value: "react" },
+        { title: "Preact", value: "preact" },
+        { title: "Lit", value: "lit" },
+        { title: "Svelte", value: "svelte" },
+        { title: "Solid", value: "solid" },
+        { title: "Qwik", value: "qwik" },
+      ],
+    });
+    await promptUser({
+      type: "select",
+      name: "webLanguage",
+      message: "Which language do you want to use?",
+      choices: [
+        { title: "Typescript", value: "-ts" },
+        { title: "JavaScript", value: "" },
+      ],
+    });
+
+    child_process.execSync(
+      `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage} --no-immediate --no-interactive`,
+      { cwd: projectDir, stdio: ["inherit", "ignore", "inherit"] },
+    );
+  }
 
   if (config.projectType === "plugin") {
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_plugin");
@@ -443,12 +475,43 @@ async function makeInitialCMakeProject() {
       path.join("${PROJECT_SOURCE_DIR}", relativeSourceDir, "main.cpp"),
     );
 
-    setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_basics");
-
     if (config.guiAPI === "component") {
       fs.copyFileSync(
         path.join(templatesDir, "gui-app-main-component-JUCE.h"),
         path.join(projectSourceDir, "gui", "MainComponent.h"),
+      );
+
+      setVar(projectCMakeLists, "COMPILE_DEFINITIONS", "JUCE_WEB_BROWSER=0");
+      setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_basics");
+    } else if (config.guiAPI === "webview") {
+      fs.copyFileSync(
+        path.join(templatesDir, "SinglePageBrowserComponent.h"),
+        path.join(projectSourceDir, "gui", "SinglePageBrowserComponent.h"),
+      );
+      fs.copyFileSync(
+        path.join(templatesDir, "SinglePageBrowserComponent.mm"),
+        path.join(projectSourceDir, "gui", "SinglePageBrowserComponent.mm"),
+      );
+      fs.copyFileSync(
+        path.join(templatesDir, "gui-app-main-component-webview.h"),
+        path.join(projectSourceDir, "gui", "MainComponent.h"),
+      );
+      fs.copyFileSync(
+        path.join(templatesDir, "WebFrontend.cmake"),
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+      );
+      setVar(
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+        "PROJECT_ID",
+        config.projectID,
+      );
+
+      setVar(projectCMakeLists, "COMPILE_DEFINITIONS", "JUCE_WEB_BROWSER=1");
+      setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_extra");
+      setVar(
+        projectCMakeLists,
+        "ADD_WEB_FRONTEND",
+        `include(WebFrontend)\nadd_web_frontend(${config.projectID})\n`,
       );
     }
   } else if (config.projectType === "console") {

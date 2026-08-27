@@ -28,6 +28,7 @@ PRIVATE
     JUCE_VST3_CAN_REPLACE_VST2=0
     PROJECT_NAME="${PROJECT_NAME}"
     PROJECT_VERSION="${PROJECT_VERSION}"
+    VAR_COMPILE_DEFINITIONS
 )
 
 target_compile_features(VAR_PROJECT_ID
@@ -62,5 +63,6 @@ PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/WX>
 )
 
+VAR_ADD_WEB_FRONTEND
 include(CTest)
 add_subdirectory(tests)
