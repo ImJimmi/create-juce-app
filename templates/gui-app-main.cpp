@@ -34,7 +34,7 @@ public:
 
     void getCommandInfo(juce::CommandID id, juce::ApplicationCommandInfo& info) override
     {
-        if (id == saveCommandID)
+        if (id == static_cast<juce::CommandID>(CommandID::save))
         {
             info.commandID = id;
             info.shortName = "Save";
@@ -54,12 +54,12 @@ public:
     void getAllCommands(juce::Array<juce::CommandID>& commands) override
     {
         juce::JUCEApplication::getAllCommands(commands);
-        commands.add(saveCommandID);
+        commands.add(static_cast<juce::CommandID>(CommandID::save));
     }
 
     bool perform(const InvocationInfo& invocation) override
     {
-        if (invocation.commandID == saveCommandID)
+        if (invocation.commandID == static_cast<juce::CommandID>(CommandID::save))
         {
             saveAppState();
             return true;
@@ -69,9 +69,9 @@ public:
     }
 
 private:
-    enum CommandIDs
+    enum class CommandID
     {
-        saveCommandID = 0x1337
+        save = 0x1337
     };
 
     [[nodiscard]] juce::ValueTree loadAppState() const
@@ -118,7 +118,7 @@ private:
         DBG("Saved the app's state to '" << settingsFile.getFullPathName() << "'");
     }
 
-    static inline const juce::File settingsFile{
+    const juce::File settingsFile{
         juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
             .getChildFile(juce::String{ PROJECT_NAME }.replace(" ", "_"))
             .getChildFile("settings.xml"),

@@ -3,6 +3,7 @@ project("VAR_PROJECT_NAME" VERSION 1.0.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CommonConfig)
+include(ClangTidy)
 
 VAR_INIT_CPM
 VAR_ADD_JUCE_DEPENDENCY
@@ -62,6 +63,8 @@ PRIVATE
     $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Werror>
     $<$<CXX_COMPILER_ID:MSVC>:/WX>
 )
+
+add_clang_tidy(VAR_PROJECT_ID)
 
 VAR_ADD_WEB_FRONTEND
 include(CTest)

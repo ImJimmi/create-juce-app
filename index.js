@@ -286,6 +286,14 @@ async function makeInitialCMakeProject() {
     path.join(templatesDir, "CommonConfig.cmake"),
     path.join(projectDir, "cmake", "CommonConfig.cmake"),
   );
+  fs.copyFileSync(
+    path.join(templatesDir, "ClangTidy.cmake"),
+    path.join(projectDir, "cmake", "ClangTidy.cmake"),
+  );
+  fs.copyFileSync(
+    path.join(import.meta.dirname, ".clang-tidy"),
+    path.join(projectDir, ".clang-tidy"),
+  );
 
   await addJuceDependency();
 
@@ -428,7 +436,7 @@ async function makeInitialCMakeProject() {
       setVar(
         path.join(projectSourceDir, "Processor.h"),
         "PROCESS_BLOCK_IMPL",
-        "juce::dsp::AudioBlock<float> block{ buffer };\n        juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
+        "juce::dsp::AudioBlock<float> block{ buffer };\n        const juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
       );
     }
 

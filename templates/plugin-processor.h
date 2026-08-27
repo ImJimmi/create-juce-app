@@ -25,16 +25,10 @@ public:
     {
     }
 
-    ~Processor() override
-    {
-    }
+    JUCE_DECLARE_NON_COPYABLE(Processor)
+    JUCE_DECLARE_NON_MOVEABLE(Processor)
 
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override
-    {
-        return layouts.getMainOutputChannelSet() == layouts.getMainInputChannelSet()
-            && (layouts.getMainInputChannelSet() == juce::AudioChannelSet::mono()
-                || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo());
-    }
+    ~Processor() override = default;
 
     void prepareToPlay(double sampleRate, int blockSize) override
     {
@@ -57,11 +51,6 @@ public:
     void releaseResources() override
     {
         mainAudioProcessor = nullptr;
-    }
-
-    juce::AudioProcessorEditor* createEditor() override
-    {
-        return new Editor{ *this };
     }
 
     bool hasEditor() const override
@@ -130,7 +119,20 @@ public:
     {
     }
 
+protected:
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override
+    {
+        return layouts.getMainOutputChannelSet() == layouts.getMainInputChannelSet()
+            && (layouts.getMainInputChannelSet() == juce::AudioChannelSet::mono()
+                || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo());
+    }
+
 private:
+    juce::AudioProcessorEditor* createEditor() override
+    {
+        return new Editor{ *this }; // NOLINT
+    }
+
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioParameterBool& bypass;

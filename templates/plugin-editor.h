@@ -11,9 +11,10 @@ public:
         setSize(500, 300);
     }
 
-    ~Editor() override
-    {
-    }
+    JUCE_DECLARE_NON_COPYABLE(Editor)
+    JUCE_DECLARE_NON_MOVEABLE(Editor)
+
+    ~Editor() override = default;
 
 private:
 };

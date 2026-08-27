@@ -2,5 +2,5 @@
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new Processor{};
+    return new Processor{}; // NOLINT
 }

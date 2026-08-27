@@ -17,7 +17,7 @@ public:
         }
         , appState{ initialAppState }
     {
-        setContentOwned(new MainComponent{ appState }, true);
+        setContentOwned(new MainComponent{ appState }, true); // NOLINT
         setResizable(true, true);
         setUsingNativeTitleBar(true);
 
@@ -28,9 +28,10 @@ public:
         initialised = true;
     }
 
-    ~Window() override
-    {
-    }
+    JUCE_DECLARE_NON_COPYABLE(Window)
+    JUCE_DECLARE_NON_MOVEABLE(Window)
+
+    ~Window() override = default;
 
     void resized() override
     {
@@ -38,15 +39,16 @@ public:
         updateState();
     }
 
+    void closeButtonPressed() override
+    {
+        juce::JUCEApplicationBase::quit();
+    }
+
+protected:
     void moved() override
     {
         juce::DocumentWindow::moved();
         updateState();
-    }
-
-    void closeButtonPressed() override
-    {
-        juce::JUCEApplicationBase::quit();
     }
 
 private:

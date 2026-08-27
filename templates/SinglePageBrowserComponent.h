@@ -2,6 +2,8 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <ranges>
+
 class SinglePageBrowserComponent : public juce::WebBrowserComponent
 {
 public:
@@ -193,11 +195,10 @@ private:
             };
         }
 
-        if (const auto resourceServer = std::find_if(std::begin(resourceServers),
-                                                     std::end(resourceServers),
-                                                     [&url](const auto& server) {
-                                                         return server.resourceName == url;
-                                                     });
+        if (const auto resourceServer = std::ranges::find_if(resourceServers,
+                                                             [&url](const auto& server) {
+                                                                 return server.resourceName == url;
+                                                             });
             resourceServer != std::end(resourceServers))
         {
             return getJuceWebBrowserResource(resourceServer->resourceName,

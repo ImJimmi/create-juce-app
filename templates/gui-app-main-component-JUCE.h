@@ -39,6 +39,9 @@ public:
         setWantsKeyboardFocus(true);
     }
 
+    JUCE_DECLARE_NON_COPYABLE(MainComponent)
+    JUCE_DECLARE_NON_MOVEABLE(MainComponent)
+
     ~MainComponent() override
     {
         appState.removeListener(this);
