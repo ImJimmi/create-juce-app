@@ -99,6 +99,12 @@ async function makeInitialProjectDir() {
   });
   await promptUser({
     type: "text",
+    name: "companyName",
+    message: "What's your company/brand name?",
+    initial: "My Company",
+  });
+  await promptUser({
+    type: "text",
     name: "projectID",
     message: "What should we call the project folder?",
     initial: toKebabCase(config.projectName),
@@ -280,6 +286,12 @@ async function makeInitialCMakeProject() {
   fs.copyFileSync(path.join(templatesDir, "CMakeLists.txt"), projectCMakeLists);
   setVar(projectCMakeLists, "PROJECT_ID", config.projectID);
   setVar(projectCMakeLists, "PROJECT_NAME", config.projectName);
+  setVar(projectCMakeLists, "COMPANY_NAME", config.companyName);
+  setVar(
+    projectCMakeLists,
+    "BUNDLE_ID",
+    `BUNDLE_ID "com.${toKebabCase(config.companyName)}.${config.projectID}"`,
+  );
 
   fs.mkdirSync(path.join(projectDir, "cmake"));
   fs.copyFileSync(
@@ -293,6 +305,22 @@ async function makeInitialCMakeProject() {
   fs.copyFileSync(
     path.join(import.meta.dirname, ".clang-tidy"),
     path.join(projectDir, ".clang-tidy"),
+  );
+
+  const assetsDir = path.join(projectDir, "assets");
+  fs.mkdirSync(assetsDir);
+  fs.cpSync(
+    path.join(templatesDir, "macOS_icon.icon"),
+    path.join(assetsDir, "AppIcon.icon"),
+    { recursive: true },
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "Icon_512x.jpg"),
+    path.join(assetsDir, "Icon_512x.jpg"),
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "Icon_256x.jpg"),
+    path.join(assetsDir, "Icon_256x.jpg"),
   );
 
   await addJuceDependency();
@@ -348,6 +376,12 @@ async function makeInitialCMakeProject() {
   });
 
   if (config.guiAPI === "webview") {
+    setVar(
+      projectCMakeLists,
+      "NEEDS_WEB_BROWSER",
+      "NEEDS_WEB_BROWSER TRUE\n    NEEDS_WEBVIEW2 TRUE",
+    );
+
     await promptUser({
       type: "select",
       name: "webFramework",
@@ -385,6 +419,11 @@ async function makeInitialCMakeProject() {
       projectCMakeLists,
       "PLUGIN_FORMATS",
       `FORMATS ${config.pluginFormats.join(" ")}`,
+    );
+    setVar(
+      projectCMakeLists,
+      "ICONS",
+      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon_512x.jpg"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon_256x.jpg"',
     );
 
     fs.copyFileSync(
@@ -462,6 +501,11 @@ async function makeInitialCMakeProject() {
     setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_audio_utils");
   } else if (config.projectType === "desktop") {
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_gui_app");
+    setVar(
+      projectCMakeLists,
+      "ICONS",
+      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon_512x.jpg"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon_256x.jpg"\n    ICON_COMPOSER_BUNDLE "${PROJECT_SOURCE_DIR}/assets/AppIcon.icon"',
+    );
 
     fs.copyFileSync(
       path.join(templatesDir, "gui-app-main.cpp"),
