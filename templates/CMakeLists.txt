@@ -79,3 +79,8 @@ add_clang_tidy(VAR_PROJECT_ID)
 VAR_ADD_WEB_FRONTEND
 include(CTest)
 add_subdirectory(tests)
+
+include(Installers)
+add_installation_rules(
+    TARGETS VAR_PROJECT_ID
+)

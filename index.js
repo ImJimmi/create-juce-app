@@ -326,6 +326,21 @@ async function makeInitialCMakeProject() {
     path.join(assetsDir, "Icon_256x.jpg"),
   );
 
+  const installerDir = path.join(projectDir, "installer");
+  fs.mkdirSync(installerDir);
+  fs.copyFileSync(
+    path.join(templatesDir, "License.rtf"),
+    path.join(installerDir, "License.rtf"),
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "ReadMe.rtf"),
+    path.join(installerDir, "ReadMe.rtf"),
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "Installers.cmake"),
+    path.join(projectDir, "cmake", "Installers.cmake"),
+  );
+
   await addJuceDependency();
 
   await promptUser({
@@ -778,6 +793,19 @@ function runCMake() {
   );
   child_process.execSync(`cmake --build build`, {
     cwd: projectDir,
+    encoding: "utf-8",
+    stdio: "inherit",
+  });
+  child_process.execSync(
+    `ctest . -C Debug --extra-verbose --debug --output-on-failure`,
+    {
+      cwd: path.join(projectDir, "build"),
+      encoding: "utf-8",
+      stdio: "inherit",
+    },
+  );
+  child_process.execSync(`cpack . -C Debug --verbose`, {
+    cwd: path.join(projectDir, "build"),
     encoding: "utf-8",
     stdio: "inherit",
   });
