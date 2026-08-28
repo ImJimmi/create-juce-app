@@ -13,6 +13,10 @@ function(add_web_frontend TARGET)
     PRIVATE
         $<$<PLATFORM_ID:Darwin>:${PROJECT_SOURCE_DIR}/source/VAR_PROJECT_ID/gui/SinglePageBrowserComponent.mm>
     )
+    target_compile_definitions(${TARGET}
+    PRIVATE
+        JUCE_USE_WIN_WEBVIEW2=1
+    )
 
     set(FRONTEND_SOURCE_DIR "${PROJECT_SOURCE_DIR}/frontend")
     file(GLOB_RECURSE FRONTEND_SOURCES

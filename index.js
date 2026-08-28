@@ -58,6 +58,9 @@ function toKebabCase(value) {
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
 }
+function toTitleCase(value) {
+  return `${value[0].toUpperCase()}${value.substring(1, value.length)}`;
+}
 
 function setVar(file, varName, value) {
   fs.writeFileSync(
@@ -338,6 +341,26 @@ async function makeInitialCMakeProject() {
 
   if (config.projectType === "plugin") {
     await promptUser({
+      type: "text",
+      name: "pluginCode",
+      message:
+        "What should the plugin code be?\n  (Must be 4 letters and start with an upper-case letter)",
+      validate: (code) => {
+        return code.length === 4 && code[0].toUpperCase() === code[0];
+      },
+      initial: `${toTitleCase(config.projectName.replace(/\W/g, "").substring(0, 4))}`,
+    });
+    await promptUser({
+      type: "text",
+      name: "pluginManufacturerCode",
+      message:
+        "What's your manufacturer code?\n  (Must be 4 letters and contain an upper-case letter)",
+      validate: (code) => {
+        return code.length === 4 && code[0].toUpperCase() === code[0];
+      },
+      initial: `${toTitleCase(config.companyName.replace(/\W/g, "").substring(0, 4))}`,
+    });
+    await promptUser({
       type: "multiselect",
       name: "pluginFormats",
       message: "Which plugin formats does your project support?",
@@ -415,6 +438,16 @@ async function makeInitialCMakeProject() {
 
   if (config.projectType === "plugin") {
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_plugin");
+    setVar(
+      projectCMakeLists,
+      "PLUGIN_CODE",
+      `PLUGIN_CODE "${config.pluginCode}"`,
+    );
+    setVar(
+      projectCMakeLists,
+      "PLUGIN_MANUFACTURER_CODE",
+      `PLUGIN_MANUFACTURER_CODE "${config.pluginManufacturerCode}"`,
+    );
     setVar(
       projectCMakeLists,
       "PLUGIN_FORMATS",
