@@ -318,12 +318,12 @@ async function makeInitialCMakeProject() {
     { recursive: true },
   );
   fs.copyFileSync(
-    path.join(templatesDir, "Icon_512x.jpg"),
-    path.join(assetsDir, "Icon_512x.jpg"),
+    path.join(templatesDir, "Icon-512x.png"),
+    path.join(assetsDir, "Icon-512x.png"),
   );
   fs.copyFileSync(
-    path.join(templatesDir, "Icon_256x.jpg"),
-    path.join(assetsDir, "Icon_256x.jpg"),
+    path.join(templatesDir, "Icon-256x.png"),
+    path.join(assetsDir, "Icon-256x.png"),
   );
 
   const installerDir = path.join(projectDir, "installer");
@@ -473,7 +473,7 @@ async function makeInitialCMakeProject() {
     setVar(
       projectCMakeLists,
       "ICONS",
-      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon_512x.jpg"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon_256x.jpg"',
+      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon-512x.png"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon-256x.png"',
     );
 
     fs.copyFileSync(
@@ -594,7 +594,7 @@ async function makeInitialCMakeProject() {
     setVar(
       projectCMakeLists,
       "ICONS",
-      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon_512x.jpg"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon_256x.jpg"\n    ICON_COMPOSER_BUNDLE "${PROJECT_SOURCE_DIR}/assets/AppIcon.icon"',
+      'ICON_BIG "${PROJECT_SOURCE_DIR}/assets/Icon-512x.png"\n    ICON_SMALL "${PROJECT_SOURCE_DIR}/assets/Icon-256x.png"\n    ICON_COMPOSER_BUNDLE "${PROJECT_SOURCE_DIR}/assets/AppIcon.icon"',
     );
 
     fs.copyFileSync(
