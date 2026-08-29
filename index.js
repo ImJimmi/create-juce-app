@@ -442,13 +442,13 @@ async function makeInitialCMakeProject() {
       name: "webLanguage",
       message: "Which language do you want to use?",
       choices: [
-        { title: "Typescript", value: "-ts" },
-        { title: "JavaScript", value: "" },
+        { title: "Typescript", value: "typescript" },
+        { title: "JavaScript", value: "javascript" },
       ],
     });
 
     child_process.execSync(
-      `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage} --no-immediate --no-interactive`,
+      `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage === "typescript" ? "-ts" : ""} --no-immediate --no-interactive`,
       { cwd: projectDir, stdio: "ignore" },
     );
   }
@@ -817,6 +817,78 @@ async function addUnitTestFramework() {
   return 0;
 }
 
+function addREADME() {
+  const README = path.join(projectDir, "README.md");
+  fs.copyFileSync(path.join(templatesDir, "README.md"), README);
+
+  setVar(README, "PROJECT_NAME", config.projectName);
+
+  let additionalBadges = [];
+
+  if (config.dependencyType === "cpm") {
+    const home = os.homedir();
+    setVar(
+      README,
+      "CPM_SOURCE_CACHE_ROW",
+      `| \`CPM_SOURCE_CACHE\` | Where [CPM](https://github.com/cpm-cmake/cpm.cmake) should cache dependencies | ${home}/.cache/CPM |`,
+    );
+  }
+
+  if (config.webLanguage === "javascript") {
+    additionalBadges.push(
+      '<img src="https://img.shields.io/badge/javascript-F7DF1E?logo=javascript&style=for-the-badge&logoColor=black"/>',
+    );
+  } else if (config.webLanguage === "typescript") {
+    additionalBadges.push(
+      '<img src="https://img.shields.io/badge/typescript-3178C6?logo=typescript&style=for-the-badge&logoColor=white"/>',
+    );
+  }
+
+  if (config.guiAPI === "webview") {
+    additionalBadges.push(
+      '<img src="https://img.shields.io/badge/vite-9135FF?style=for-the-badge&logo=vite&logoColor=white"/>',
+    );
+
+    if (config.webFramework === "svelte") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/svelte-FF3E00?logo=svelte&style=for-the-badge&logoColor=white"/>',
+      );
+    } else if (config.webFramework === "react") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/react-61DAFB?logo=react&style=for-the-badge&logoColor=black"/>',
+      );
+    } else if (config.webFramework === "vue") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/vuedotjs-4FC08D?logo=vuedotjs&style=for-the-badge&logoColor=white"/>',
+      );
+    } else if (config.webFramework === "preact") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/preact-673AB8?logo=preact&style=for-the-badge"/>',
+      );
+    } else if (config.webFramework === "lit") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/lit-324FFF?logo=lit&style=for-the-badge"/>',
+      );
+    } else if (config.webFramework === "solid") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/solid-2C4F7C?logo=solid&style=for-the-badge"/>',
+      );
+    } else if (config.webFramework === "qwik") {
+      additionalBadges.push(
+        '<img src="https://img.shields.io/badge/qwik-AC7EF4?logo=qwik&style=for-the-badge&logoColor=white"/>',
+      );
+    }
+  }
+
+  if (additionalBadges.length > 0) {
+    setVar(README, "ADDITIONAL_BADGES", additionalBadges.join("\n  "));
+  }
+
+  clearUnsetVars(README);
+
+  return 0;
+}
+
 function makeInitialCommit() {
   try {
     child_process.execSync("git add --all", { cwd: projectDir });
@@ -862,6 +934,7 @@ try {
   let result = await makeInitialProjectDir();
   if (result === 0) result = await makeInitialCMakeProject();
   if (result === 0) result = await addUnitTestFramework();
+  if (result === 0) result = addREADME();
 
   if (result !== 0) {
     console.error(`Ended with code ${result}`);
