@@ -358,20 +358,22 @@ async function makeInitialCMakeProject() {
     await promptUser({
       type: "text",
       name: "pluginCode",
-      message:
-        "What should the plugin code be?\n  (Must be 4 letters and start with an upper-case letter)",
+      message: "What should the plugin code be?",
       validate: (code) => {
-        return code.length === 4 && code[0].toUpperCase() === code[0];
+        if (code.length === 4 && code[0].toUpperCase() === code[0]) return true;
+
+        return "Plugin Code must be 4 letters and start with an upper-case letter";
       },
       initial: `${toTitleCase(config.projectName.replace(/\W/g, "").substring(0, 4))}`,
     });
     await promptUser({
       type: "text",
       name: "pluginManufacturerCode",
-      message:
-        "What's your manufacturer code?\n  (Must be 4 letters and contain an upper-case letter)",
+      message: "What's your manufacturer code?",
       validate: (code) => {
-        return code.length === 4 && code[0].toUpperCase() === code[0];
+        if (code.length === 4 && code[0].toUpperCase() === code[0]) return true;
+
+        return "Manufacturer Code must be 4 letters and start with an upper-case letter";
       },
       initial: `${toTitleCase(config.companyName.replace(/\W/g, "").substring(0, 4))}`,
     });
@@ -447,7 +449,7 @@ async function makeInitialCMakeProject() {
 
     child_process.execSync(
       `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage} --no-immediate --no-interactive`,
-      { cwd: projectDir, stdio: ["inherit", "ignore", "inherit"] },
+      { cwd: projectDir, stdio: "ignore" },
     );
   }
 
@@ -532,10 +534,6 @@ async function makeInitialCMakeProject() {
       path.join(projectSourceDir, "audio", "Parameters.h"),
     );
     fs.mkdirSync(path.join(projectSourceDir, "editor"));
-    fs.copyFileSync(
-      path.join(templatesDir, "plugin-editor.h"),
-      path.join(projectSourceDir, "editor", "Editor.h"),
-    );
     setVar(
       projectCMakeLists,
       "SOURCES",
@@ -545,8 +543,52 @@ async function makeInitialCMakeProject() {
         "CreatePluginFilter.cpp",
       ),
     );
-
     setVar(projectCMakeLists, "LINK_LIBRARIES", "juce::juce_audio_utils");
+
+    if (config.guiAPI === "component") {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-editor-JUCE.h"),
+        path.join(projectSourceDir, "editor", "Editor.h"),
+      );
+      setVar(
+        path.join(projectSourceDir, "editor", "Editor.h"),
+        "PROJECT_ID",
+        config.projectID,
+      );
+    } else if (config.guiAPI === "webview") {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-editor-webview.h"),
+        path.join(projectSourceDir, "editor", "Editor.h"),
+      );
+      fs.copyFileSync(
+        path.join(templatesDir, "SinglePageBrowserComponent.h"),
+        path.join(projectSourceDir, "editor", "SinglePageBrowserComponent.h"),
+      );
+      fs.copyFileSync(
+        path.join(templatesDir, "SinglePageBrowserComponent.mm"),
+        path.join(projectSourceDir, "editor", "SinglePageBrowserComponent.mm"),
+      );
+
+      fs.copyFileSync(
+        path.join(templatesDir, "WebFrontend.cmake"),
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+      );
+      setVar(
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+        "PROJECT_ID",
+        config.projectID,
+      );
+      setVar(
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+        "GUI_DIR",
+        "editor",
+      );
+      setVar(
+        projectCMakeLists,
+        "ADD_WEB_FRONTEND",
+        `include(WebFrontend)\nadd_web_frontend(${config.projectID})\n`,
+      );
+    }
   } else if (config.projectType === "desktop") {
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_gui_app");
     setVar(
@@ -604,6 +646,11 @@ async function makeInitialCMakeProject() {
         path.join(projectDir, "cmake", "WebFrontend.cmake"),
         "PROJECT_ID",
         config.projectID,
+      );
+      setVar(
+        path.join(projectDir, "cmake", "WebFrontend.cmake"),
+        "GUI_DIR",
+        "gui",
       );
 
       setVar(projectCMakeLists, "COMPILE_DEFINITIONS", "JUCE_WEB_BROWSER=1");

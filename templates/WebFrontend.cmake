@@ -11,7 +11,7 @@ endif()
 function(add_web_frontend TARGET)
     target_sources(${TARGET}
     PRIVATE
-        $<$<PLATFORM_ID:Darwin>:${PROJECT_SOURCE_DIR}/source/VAR_PROJECT_ID/gui/SinglePageBrowserComponent.mm>
+        $<$<PLATFORM_ID:Darwin>:${PROJECT_SOURCE_DIR}/source/VAR_PROJECT_ID/VAR_GUI_DIR/SinglePageBrowserComponent.mm>
     )
     target_compile_definitions(${TARGET}
     PRIVATE

@@ -16,8 +16,17 @@ struct OutputGainParameter
 {
     static inline const juce::ParameterID id{ "outGain" };       // NOLINT
     static inline const juce::String name{ "Output Gain (dB)" }; // NOLINT
-    static inline const juce::NormalisableRange<float> range{ -12.0f, 12.0f };
+    static inline const juce::NormalisableRange<float> range{ -12.0f, 12.0f, 0.01f };
     static inline const float defaultValue = 0.0f;
+    static constexpr auto stringFromValue = [](float value, int) {
+        if (std::abs(value) < 0.005f)
+            return juce::String{ "0.00 dB" };
+
+        return juce::String{
+            value,
+            std::abs(value) < 10.0f ? 2 : 1,
+        } + " dB";
+    };
 
     [[nodiscard]] static auto& getFrom(const juce::AudioProcessorValueTreeState& apvts)
     {
@@ -44,7 +53,9 @@ struct BypassParameter
             OutputGainParameter::id,
             OutputGainParameter::name,
             OutputGainParameter::range,
-            OutputGainParameter::defaultValue),
+            OutputGainParameter::defaultValue,
+            juce::AudioParameterFloatAttributes{}
+                .withStringFromValueFunction(OutputGainParameter::stringFromValue)),
 
         std::make_unique<juce::AudioParameterBool>(
             BypassParameter::id,

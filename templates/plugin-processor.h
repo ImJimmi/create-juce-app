@@ -111,12 +111,16 @@ public:
     {
     }
 
-    void getStateInformation(juce::MemoryBlock&) override
+    void getStateInformation(juce::MemoryBlock& memoryBlock) override
     {
+        static constexpr auto append = false;
+        juce::MemoryOutputStream stream{ memoryBlock, append };
+        apvts.copyState().writeToStream(stream);
     }
 
-    void setStateInformation(const void*, int) override
+    void setStateInformation(const void* data, int size) override
     {
+        apvts.replaceState(juce::ValueTree::readFromData(data, static_cast<std::size_t>(size)));
     }
 
 protected:
@@ -130,7 +134,7 @@ protected:
 private:
     juce::AudioProcessorEditor* createEditor() override
     {
-        return new Editor{ *this }; // NOLINT
+        return new Editor{ *this, apvts }; // NOLINT
     }
 
     juce::UndoManager undoManager;
