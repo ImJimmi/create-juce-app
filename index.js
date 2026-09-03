@@ -338,6 +338,10 @@ async function makeInitialCMakeProject() {
     path.join(import.meta.dirname, ".clang-tidy"),
     path.join(projectDir, ".clang-tidy"),
   );
+  fs.copyFileSync(
+    path.join(templatesDir, "CppCheck.cmake"),
+    path.join(projectDir, "cmake", "CppCheck.cmake"),
+  );
 
   const assetsDir = path.join(projectDir, "assets");
   fs.mkdirSync(assetsDir);
