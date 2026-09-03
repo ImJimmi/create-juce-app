@@ -20,13 +20,26 @@ if (fs.existsSync(dotEnvFile)) {
   process.loadEnvFile(dotEnvFile);
 }
 
+function getArgValue(argPrefix) {
+  return process.argv
+    .find((arg) => arg.startsWith(argPrefix))
+    ?.slice(argPrefix.length);
+}
+
 const githubTokenArg = "--github-token=";
 const githubToken =
-  process.argv
-    .find((arg) => arg.startsWith(githubTokenArg))
-    ?.slice(githubTokenArg.length) ??
+  getArgValue(githubTokenArg) ??
   process.env.GITHUB_TOKEN ??
   process.env.GH_TOKEN;
+
+const configFile = getArgValue("--config=");
+const dumpFile = getArgValue("--dump=");
+
+if (configFile) {
+  config = JSON.parse(
+    fs.readFileSync(path.resolve(configFile), { encoding: "utf-8" }),
+  );
+}
 
 async function fetchGitHubJson(url) {
   const response = await fetch(url, {
@@ -45,10 +58,26 @@ async function fetchGitHubJson(url) {
 }
 
 async function promptUser(promptObject) {
+  if (promptObject.name in config) {
+    return;
+  }
+
+  if (typeof promptObject.choices === "function") {
+    promptObject = { ...promptObject, choices: await promptObject.choices() };
+  }
+
   config = {
     ...config,
-    ...(await prompts([promptObject])),
+    ...(await prompts([promptObject], { onCancel: () => process.exit(1) })),
   };
+}
+
+function dumpConfig() {
+  const file = path.resolve(dumpFile);
+  fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, {
+    encoding: "utf-8",
+  });
+  console.log(`Config written to ${file}`);
 }
 
 function toKebabCase(value) {
@@ -247,7 +276,7 @@ async function addJuceDependency() {
     type: "select",
     name: "juceVersion",
     message: "Which version of JUCE?",
-    choices: await collectJuceVersions(),
+    choices: collectJuceVersions,
   });
 
   if (config.dependencyType === "cpm") {
@@ -404,53 +433,55 @@ async function makeInitialCMakeProject() {
     });
   }
 
-  await promptUser({
-    type: "select",
-    name: "guiAPI",
-    message: "Which GUI API should your project use?",
-    choices: [
-      { title: "Traditional JUCE Components", value: "component" },
-      { title: "Web front-end", value: "webview" },
-      { title: "JIVE", value: "jive" },
-    ],
-  });
-
-  if (config.guiAPI === "webview") {
-    setVar(
-      projectCMakeLists,
-      "NEEDS_WEB_BROWSER",
-      "NEEDS_WEB_BROWSER TRUE\n    NEEDS_WEBVIEW2 TRUE",
-    );
-
+  if (config.projectType !== "console") {
     await promptUser({
       type: "select",
-      name: "webFramework",
-      message: "Which framework do you want to use?",
+      name: "guiAPI",
+      message: "Which GUI API should your project use?",
       choices: [
-        { title: "Vanilla", value: "vanilla" },
-        { title: "Vue", value: "vue" },
-        { title: "React", value: "react" },
-        { title: "Preact", value: "preact" },
-        { title: "Lit", value: "lit" },
-        { title: "Svelte", value: "svelte" },
-        { title: "Solid", value: "solid" },
-        { title: "Qwik", value: "qwik" },
-      ],
-    });
-    await promptUser({
-      type: "select",
-      name: "webLanguage",
-      message: "Which language do you want to use?",
-      choices: [
-        { title: "Typescript", value: "typescript" },
-        { title: "JavaScript", value: "javascript" },
+        { title: "Traditional JUCE Components", value: "component" },
+        { title: "Web front-end", value: "webview" },
+        { title: "JIVE", value: "jive" },
       ],
     });
 
-    child_process.execSync(
-      `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage === "typescript" ? "-ts" : ""} --no-immediate --no-interactive`,
-      { cwd: projectDir, stdio: "ignore" },
-    );
+    if (config.guiAPI === "webview") {
+      setVar(
+        projectCMakeLists,
+        "NEEDS_WEB_BROWSER",
+        "NEEDS_WEB_BROWSER TRUE\n    NEEDS_WEBVIEW2 TRUE",
+      );
+
+      await promptUser({
+        type: "select",
+        name: "webFramework",
+        message: "Which framework do you want to use?",
+        choices: [
+          { title: "Vanilla", value: "vanilla" },
+          { title: "Vue", value: "vue" },
+          { title: "React", value: "react" },
+          { title: "Preact", value: "preact" },
+          { title: "Lit", value: "lit" },
+          { title: "Svelte", value: "svelte" },
+          { title: "Solid", value: "solid" },
+          { title: "Qwik", value: "qwik" },
+        ],
+      });
+      await promptUser({
+        type: "select",
+        name: "webLanguage",
+        message: "Which language do you want to use?",
+        choices: [
+          { title: "Typescript", value: "typescript" },
+          { title: "JavaScript", value: "javascript" },
+        ],
+      });
+
+      child_process.execSync(
+        `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage === "typescript" ? "-ts" : ""} --no-immediate --no-interactive`,
+        { cwd: projectDir, stdio: "ignore" },
+      );
+    }
   }
 
   if (config.projectType === "plugin") {
@@ -944,6 +975,10 @@ try {
   clearUnsetVars(projectCMakeLists);
   clearUnsetVars(testsCMakeLists);
   makeInitialCommit();
+
+  if (dumpFile) {
+    dumpConfig();
+  }
 
   if (process.argv.includes("--debug")) {
     runCMake();

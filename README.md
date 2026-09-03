@@ -10,6 +10,18 @@ Install [Node](https://nodejs.org), and run
 npx create-juce-app
 ```
 
+### Options
+
+- `--dump=<file>` - write the answers given to the prompts to `<file>` as JSON
+- `--config=<file>` - read answers from a JSON file, skipping the prompts they answer
+
+Together these allow a project to be recreated without any prompts:
+
+```bash
+npx create-juce-app --dump=my-project.json
+npx create-juce-app --config=my-project.json
+```
+
 ## Customisation
 
 The various prompts will allow you customise almost every aspect of your JUCE project, including:
