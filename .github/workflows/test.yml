@@ -1,0 +1,145 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-configs:
+    runs-on: ubuntu-latest
+
+    outputs:
+      names: ${{ steps.generate.outputs.names }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Generate a config for every permutation
+        id: generate
+        run: echo "names=$(node .github/scripts/generate-configs.js configs)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: configs
+          path: configs/
+
+  create-project:
+    needs: generate-configs
+    runs-on: macos-latest
+    name: ${{ matrix.name }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ${{ fromJSON(needs.generate-configs.outputs.names) }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Ninja, clang-tidy, and cppcheck
+        run: |
+          brew install ninja cppcheck llvm
+          sudo ln -sf "$(brew --prefix llvm)/bin/clang-tidy" /usr/local/bin/clang-tidy
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: Check clang-tidy and cppcheck are available
+        run: |
+          clang-tidy --version
+          cppcheck --version
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - run: npm ci
+
+      - run: node .github/scripts/generate-configs.js configs
+
+      - name: Create, build, test, and package the project
+        run: node index.js --config="configs/${{ matrix.name }}.json" --debug
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Report failure
+        if: failure()
+        run: |
+          {
+            echo "### Failed: \`${{ matrix.name }}\`"
+            echo
+            echo "<details><summary>Config</summary>"
+            echo
+            echo '```json'
+            cat "configs/${{ matrix.name }}.json"
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: failed-config-${{ matrix.name }}
+          path: configs/${{ matrix.name }}.json
+
+      - name: Record result
+        if: always()
+        run: |
+          mkdir -p results
+          echo "${{ job.status }}" > "results/${{ matrix.name }}"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: result-${{ matrix.name }}
+          path: results/
+
+  report:
+    needs: create-project
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: result-*
+          merge-multiple: true
+          path: results
+
+      - name: Summarise every permutation
+        run: |
+          {
+            echo "| Permutation | Result |"
+            echo "| :- | :- |"
+            for result in results/*; do
+              case "$(cat "$result")" in
+                success) icon="white_check_mark" ;;
+                failure) icon="x" ;;
+                *) icon="grey_question" ;;
+              esac
+              echo "| \`$(basename "$result")\` | :$icon: $(cat "$result") |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check every permutation succeeded
+        run: |
+          if [ "${{ needs.create-project.result }}" != "success" ]; then
+            echo "One or more permutations failed - see the job summary for the full list"
+            exit 1
+          fi

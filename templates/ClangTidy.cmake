@@ -4,7 +4,7 @@ find_program(CLANG_TIDY_COMMAND clang-tidy)
 
 if(NOT CLANG_TIDY_COMMAND)
     if (APPLE)
-        message(WARNING "clang-tidy not found. Install using\n  $ brew install llvm\n  Then add $(brew --prefix llvm)/bin to your PATH")
+        message(WARNING "clang-tidy not found. Install using\n  $ brew install llvm\n  Then link it with\n  $ sudo ln -sf $(brew --prefix llvm)/bin/clang-tidy /usr/local/bin/clang-tidy")
     elseif(WIN32)
         message(WARNING "clang-tidy not found. Install using\n  $ winget install LLVM.LLVM\n  Or install the 'C++ Clang tools for Windows' Visual Studio component")
     endif()
