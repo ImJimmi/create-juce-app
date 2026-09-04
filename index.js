@@ -204,12 +204,15 @@ async function collectJuceVersions() {
   const message = "Fetching available JUCE versions…";
   process.stdout.write(message);
 
-  const releases = (
+  let releases = (
     await fetchGitHubJson(
       "https://api.github.com/repos/juce-framework/JUCE/releases",
     )
   ).map((release) => ({ title: release.name, value: release.tag_name }));
 
+  releases = releases.filter(
+    (release) => Number.parseInt(release.value[0]) >= 8,
+  );
   releases[0].title = releases[0].title + " (recommended)";
   releases.splice(1, 0, { title: "Master branch", value: "master" });
   releases.splice(2, 0, { title: "Develop branch", value: "develop" });
@@ -332,14 +335,22 @@ const pluginEffectCategories = {
     vst2: "kPlugCategEffect",
     aax: "Modulation",
   },
-  pitchShift: { vst3: "Pitch Shift", vst2: "kPlugCategEffect", aax: "PitchShift" },
+  pitchShift: {
+    vst3: "Pitch Shift",
+    vst2: "kPlugCategEffect",
+    aax: "PitchShift",
+  },
   restoration: {
     vst3: "Restoration",
     vst2: "kPlugCategRestoration",
     aax: "NoiseReduction",
   },
   analyzer: { vst3: "Analyzer", vst2: "kPlugCategAnalysis", aax: null },
-  spatial: { vst3: "Spatial", vst2: "kPlugCategSpacializer", aax: "SoundField" },
+  spatial: {
+    vst3: "Spatial",
+    vst2: "kPlugCategSpacializer",
+    aax: "SoundField",
+  },
   mastering: { vst3: "Mastering", vst2: "kPlugCategMastering", aax: null },
   tools: { vst3: "Tools", vst2: "kPlugCategEffect", aax: null },
   generator: { vst3: "Generator", vst2: "kPlugCategGenerator", aax: null },
@@ -644,8 +655,7 @@ async function makeInitialCMakeProject() {
       );
     }
 
-    const effectCategory =
-      pluginEffectCategories[config.pluginEffectCategory];
+    const effectCategory = pluginEffectCategories[config.pluginEffectCategory];
     if (effectCategory) {
       const pluginCategories = [
         `VST3_CATEGORIES Fx ${quoteIfContainsSpace(effectCategory.vst3)}`,
