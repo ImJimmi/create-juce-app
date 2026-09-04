@@ -87,7 +87,12 @@ function configFor(options) {
     ...(options.projectType === "plugin" && {
       pluginCode: "Cjap",
       pluginManufacturerCode: "Cjac",
-      pluginFormats: ["AU", "Standalone", "VST3"],
+      // Every format except VST (legacy VST2), which needs a proprietary SDK
+      // that isn't available in CI.
+      pluginFormats: ["AAX", "AU", "AUv3", "LV2", "Standalone", "Unity", "VST3"],
+      pluginType: "fx",
+      midiIO: [],
+      pluginEffectCategory: "none",
     }),
   };
 }

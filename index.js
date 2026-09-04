@@ -313,17 +313,51 @@ async function addJuceDependency() {
   }
 }
 
+// Maps an effect category onto the equivalent category for each plugin format that supports
+// finer-grained categorisation than a plain "effect". VST2 and AAX have no equivalent for some
+// categories, in which case `vst2`/`aax` is left at its format's default and omitted below.
+const pluginEffectCategories = {
+  dynamics: { vst3: "Dynamics", vst2: "kPlugCategEffect", aax: "Dynamics" },
+  eq: { vst3: "EQ", vst2: "kPlugCategEffect", aax: "EQ" },
+  filter: { vst3: "Filter", vst2: "kPlugCategEffect", aax: null },
+  distortion: {
+    vst3: "Distortion",
+    vst2: "kPlugCategEffect",
+    aax: "Harmonic",
+  },
+  delay: { vst3: "Delay", vst2: "kPlugCategEffect", aax: "Delay" },
+  reverb: { vst3: "Reverb", vst2: "kPlugCategRoomFx", aax: "Reverb" },
+  modulation: {
+    vst3: "Modulation",
+    vst2: "kPlugCategEffect",
+    aax: "Modulation",
+  },
+  pitchShift: { vst3: "Pitch Shift", vst2: "kPlugCategEffect", aax: "PitchShift" },
+  restoration: {
+    vst3: "Restoration",
+    vst2: "kPlugCategRestoration",
+    aax: "NoiseReduction",
+  },
+  analyzer: { vst3: "Analyzer", vst2: "kPlugCategAnalysis", aax: null },
+  spatial: { vst3: "Spatial", vst2: "kPlugCategSpacializer", aax: "SoundField" },
+  mastering: { vst3: "Mastering", vst2: "kPlugCategMastering", aax: null },
+  tools: { vst3: "Tools", vst2: "kPlugCategEffect", aax: null },
+  generator: { vst3: "Generator", vst2: "kPlugCategGenerator", aax: null },
+};
+
+function quoteIfContainsSpace(value) {
+  return value.includes(" ") ? `"${value}"` : value;
+}
+
 async function makeInitialCMakeProject() {
   projectCMakeLists = path.join(projectDir, "CMakeLists.txt");
   fs.copyFileSync(path.join(templatesDir, "CMakeLists.txt"), projectCMakeLists);
+  const bundleId = `com.${toKebabCase(config.companyName)}.${config.projectID}`;
+
   setVar(projectCMakeLists, "PROJECT_ID", config.projectID);
   setVar(projectCMakeLists, "PROJECT_NAME", config.projectName);
   setVar(projectCMakeLists, "COMPANY_NAME", config.companyName);
-  setVar(
-    projectCMakeLists,
-    "BUNDLE_ID",
-    `BUNDLE_ID "com.${toKebabCase(config.companyName)}.${config.projectID}"`,
-  );
+  setVar(projectCMakeLists, "BUNDLE_ID", `BUNDLE_ID "${bundleId}"`);
 
   fs.mkdirSync(path.join(projectDir, "cmake"));
   fs.copyFileSync(
@@ -426,6 +460,79 @@ async function makeInitialCMakeProject() {
         { title: "VST", value: "VST" },
       ],
     });
+
+    if (config.pluginFormats.includes("VST")) {
+      await promptUser({
+        type: "text",
+        name: "vst2SdkPath",
+        message:
+          "Where's your VST2 SDK? (Steinberg no longer distributes this - you'll need your own copy)",
+      });
+    }
+
+    await promptUser({
+      type: "select",
+      name: "pluginType",
+      message:
+        "What type of plugin are you building? (used to categorise it in VST3, AU, AAX, and VST hosts)",
+      choices: [
+        { title: "Effect", value: "fx" },
+        { title: "Synth (Instrument)", value: "synth" },
+        { title: "MIDI Effect (MIDI-only, no audio)", value: "midiEffect" },
+      ],
+    });
+
+    if (config.pluginType !== "midiEffect") {
+      await promptUser({
+        type: "multiselect",
+        name: "midiIO",
+        message: "Does your plugin use MIDI?",
+        choices: [
+          {
+            title: "Accepts MIDI input",
+            value: "needsMidiInput",
+            selected: config.pluginType === "synth",
+          },
+          { title: "Produces MIDI output", value: "needsMidiOutput" },
+        ],
+      });
+    }
+
+    if (config.pluginType === "fx") {
+      await promptUser({
+        type: "select",
+        name: "pluginEffectCategory",
+        message:
+          "What category best describes your effect? (used to sort it in VST3 and AAX host browsers)",
+        choices: [
+          { title: "General / Other", value: "none" },
+          {
+            title: "Dynamics (compressor, limiter, gate, etc.)",
+            value: "dynamics",
+          },
+          { title: "EQ", value: "eq" },
+          { title: "Filter", value: "filter" },
+          { title: "Distortion / Saturation", value: "distortion" },
+          { title: "Delay", value: "delay" },
+          { title: "Reverb", value: "reverb" },
+          {
+            title: "Modulation (chorus, flanger, phaser, etc.)",
+            value: "modulation",
+          },
+          { title: "Pitch Shift", value: "pitchShift" },
+          {
+            title: "Restoration (noise reduction, de-clicking, etc.)",
+            value: "restoration",
+          },
+          { title: "Analyzer", value: "analyzer" },
+          { title: "Spatial / Surround", value: "spatial" },
+          { title: "Mastering", value: "mastering" },
+          { title: "Tools / Utility", value: "tools" },
+          { title: "Generator", value: "generator" },
+        ],
+      });
+    }
+
     await promptUser({
       type: "select",
       name: "dspAPI",
@@ -489,6 +596,13 @@ async function makeInitialCMakeProject() {
   }
 
   if (config.projectType === "plugin") {
+    const isSynth = config.pluginType === "synth";
+    const isMidiEffect = config.pluginType === "midiEffect";
+    const needsMidiInput =
+      isMidiEffect || config.midiIO.includes("needsMidiInput");
+    const needsMidiOutput =
+      isMidiEffect || config.midiIO.includes("needsMidiOutput");
+
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_plugin");
     setVar(
       projectCMakeLists,
@@ -505,6 +619,47 @@ async function makeInitialCMakeProject() {
       "PLUGIN_FORMATS",
       `FORMATS ${config.pluginFormats.join(" ")}`,
     );
+    if (config.pluginFormats.includes("VST")) {
+      setVar(
+        projectCMakeLists,
+        "VST2_SDK_PATH",
+        `juce_set_vst2_sdk_path("${config.vst2SdkPath}")`,
+      );
+    }
+    if (config.pluginFormats.includes("LV2")) {
+      setVar(projectCMakeLists, "LV2_URI", `LV2URI "urn:${bundleId}"`);
+    }
+    const pluginCharacteristics = [
+      isSynth && "IS_SYNTH TRUE",
+      needsMidiInput && "NEEDS_MIDI_INPUT TRUE",
+      needsMidiOutput && "NEEDS_MIDI_OUTPUT TRUE",
+      isMidiEffect && "IS_MIDI_EFFECT TRUE",
+    ].filter(Boolean);
+
+    if (pluginCharacteristics.length > 0) {
+      setVar(
+        projectCMakeLists,
+        "PLUGIN_CHARACTERISTICS",
+        pluginCharacteristics.join("\n    "),
+      );
+    }
+
+    const effectCategory =
+      pluginEffectCategories[config.pluginEffectCategory];
+    if (effectCategory) {
+      const pluginCategories = [
+        `VST3_CATEGORIES Fx ${quoteIfContainsSpace(effectCategory.vst3)}`,
+        effectCategory.vst2 !== "kPlugCategEffect" &&
+          `VST2_CATEGORY ${effectCategory.vst2}`,
+        effectCategory.aax && `AAX_CATEGORY ${effectCategory.aax}`,
+      ].filter(Boolean);
+
+      setVar(
+        projectCMakeLists,
+        "PLUGIN_CATEGORIES",
+        pluginCategories.join("\n    "),
+      );
+    }
     setVar(
       projectCMakeLists,
       "ICONS",
@@ -529,6 +684,21 @@ async function makeInitialCMakeProject() {
       path.join(projectSourceDir, "Processor.h"),
       "PROJECT_ID",
       config.projectID,
+    );
+    setVar(
+      path.join(projectSourceDir, "Processor.h"),
+      "NEEDS_MIDI_INPUT",
+      needsMidiInput ? "true" : "false",
+    );
+    setVar(
+      path.join(projectSourceDir, "Processor.h"),
+      "NEEDS_MIDI_OUTPUT",
+      needsMidiOutput ? "true" : "false",
+    );
+    setVar(
+      path.join(projectSourceDir, "Processor.h"),
+      "IS_MIDI_EFFECT",
+      isMidiEffect ? "true" : "false",
     );
 
     fs.mkdirSync(path.join(projectSourceDir, "audio"));

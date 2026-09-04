@@ -70,17 +70,17 @@ public:
 
     bool acceptsMidi() const override
     {
-        return false;
+        return VAR_NEEDS_MIDI_INPUT;
     }
 
     bool producesMidi() const override
     {
-        return false;
+        return VAR_NEEDS_MIDI_OUTPUT;
     }
 
     bool isMidiEffect() const override
     {
-        return false;
+        return VAR_IS_MIDI_EFFECT;
     }
 
     double getTailLengthSeconds() const override
