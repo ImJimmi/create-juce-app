@@ -26,6 +26,7 @@ function(add_cppcheck TARGET)
         "-DCPPCHECK_TEMPLATE=${CPPCHECK_TEMPLATE}"
         -P
         "${PROJECT_SOURCE_DIR}/cmake/CppCheck.cmake"
+        --
     )
 
     set_target_properties(${TARGET}
@@ -41,6 +42,7 @@ if(CMAKE_SCRIPT_MODE_FILE)
 
     set(FORWARDED_ARGS "")
     set(START_OF_CPPCHECK_ARGS OFF)
+    set(SKIPPED_SEPARATOR OFF)
     math(EXPR LAST_ARG "${CMAKE_ARGC} - 1")
 
     foreach(i RANGE 0 ${LAST_ARG})
@@ -51,6 +53,11 @@ if(CMAKE_SCRIPT_MODE_FILE)
                 set(START_OF_CPPCHECK_ARGS ON)
             endif()
 
+            continue()
+        endif()
+
+        if(NOT SKIPPED_SEPARATOR)
+            set(SKIPPED_SEPARATOR ON)
             continue()
         endif()
 

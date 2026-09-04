@@ -1,0 +1,61 @@
+name: Import signing certificates
+description: Imports the macOS and Windows code-signing certificates into the runner, if configured via repository secrets.
+
+inputs:
+  macos-certificate-p12:
+    description: Base64-encoded .p12 file containing the Developer ID Application and Installer certificates
+    required: false
+  macos-certificate-password:
+    description: Password for the .p12 file
+    required: false
+  macos-keychain-password:
+    description: Password used to protect the temporary CI keychain
+    required: false
+  windows-certificate-pfx:
+    description: Base64-encoded .pfx code-signing certificate
+    required: false
+  windows-certificate-password:
+    description: Password for the .pfx file
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Import Apple code-signing certificate
+      if: runner.os == 'macOS' && inputs.macos-certificate-p12 != ''
+      shell: bash
+      env:
+        MACOS_CERTIFICATE_P12: ${{ inputs.macos-certificate-p12 }}
+        MACOS_CERTIFICATE_PASSWORD: ${{ inputs.macos-certificate-password }}
+        KEYCHAIN_PASSWORD: ${{ inputs.macos-keychain-password }}
+      run: |
+        CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+        KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+        echo -n "$MACOS_CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
+
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security import "$CERTIFICATE_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/productbuild
+
+        # shellcheck disable=SC2046
+        # Word-splitting here is intentional: each existing keychain must be
+        # passed as its own argument alongside the new one.
+        security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+        echo "MACOS_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+    - name: Import Windows code-signing certificate
+      if: runner.os == 'Windows' && inputs.windows-certificate-pfx != ''
+      shell: pwsh
+      env:
+        WINDOWS_CERTIFICATE_PFX: ${{ inputs.windows-certificate-pfx }}
+        WINDOWS_CERTIFICATE_PASSWORD: ${{ inputs.windows-certificate-password }}
+      run: |
+        $certPath = Join-Path $env:RUNNER_TEMP "certificate.pfx"
+        [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX))
+        $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+        $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+        echo "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV

@@ -78,7 +78,7 @@ if(CMAKE_SCRIPT_MODE_FILE)
     endforeach()
 
     execute_process(
-        COMMAND ${CLANG_TIDY_COMMAND} "--header-filter=${CLANG_TIDY_HEADER_FILTER}" "--config-file=${CLANG_TIDY_CONFIG}" -p "${CLANG_TIDY_BUILD_DIR}" ${FILTERED_ARGS}
+        COMMAND ${CLANG_TIDY_COMMAND} "--header-filter=${CLANG_TIDY_HEADER_FILTER}" "--config-file=${CLANG_TIDY_CONFIG}" --extra-arg=-Wno-unknown-warning-option -p "${CLANG_TIDY_BUILD_DIR}" ${FILTERED_ARGS}
         RESULT_VARIABLE RESULT
     )
 

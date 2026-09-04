@@ -1,0 +1,161 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+
+      # Only the tag-triggered release build needs to sign and package
+      # installers, so the certificate/signing/notarizing steps below are all
+      # skipped for pull requests.
+
+      - name: Import signing certificates
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ./.github/actions/import-signing-certificates
+        with:
+          macos-certificate-p12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          macos-certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          macos-keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+          windows-certificate-pfx: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          windows-certificate-password: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+      - name: Configure
+        shell: bash
+        run: |
+          EXTRA_ARGS=()
+          if [ -n "$JUCE_WEBVIEW2_PACKAGE_LOCATION" ]; then
+            EXTRA_ARGS+=(-D "JUCE_WEBVIEW2_PACKAGE_LOCATION=$JUCE_WEBVIEW2_PACKAGE_LOCATION")
+          fi
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            EXTRA_ARGS+=(-D "CMAKE_C_COMPILER=cl" -D "CMAKE_CXX_COMPILER=cl")
+          fi
+
+          cmake -B build -G "Ninja Multi-Config" -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache "${EXTRA_ARGS[@]}"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
+      - name: Code-sign built plugin/app bundles
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && env.MACOS_CODESIGN_IDENTITY != ''
+        env:
+          MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
+        run: |
+          find build -mindepth 1 -maxdepth 5 \( -name "*.app" -o -name "*.vst3" -o -name "*.component" -o -name "*.aaxplugin" -o -name "*.appex" \) -print0 |
+            while IFS= read -r -d '' bundle; do
+              echo "Signing $bundle"
+              codesign --force --deep --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "$bundle"
+            done
+
+      - name: Package
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        working-directory: build
+        env:
+          MACOS_INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
+          MACOS_KEYCHAIN_PATH: ${{ env.MACOS_KEYCHAIN_PATH }}
+        run: |
+          EXTRA_ARGS=()
+          if [ "$RUNNER_OS" = "macOS" ] && [ -n "$MACOS_INSTALLER_IDENTITY" ]; then
+            EXTRA_ARGS+=(-D "CPACK_PRODUCTBUILD_IDENTITY_NAME=$MACOS_INSTALLER_IDENTITY")
+            EXTRA_ARGS+=(-D "CPACK_PRODUCTBUILD_KEYCHAIN_PATH=$MACOS_KEYCHAIN_PATH")
+          fi
+          cpack -C Release "${EXTRA_ARGS[@]}"
+
+      - name: Locate installer
+        if: startsWith(github.ref, 'refs/tags/')
+        id: installer
+        shell: bash
+        run: |
+          FILE=$(find build -maxdepth 1 -type f \( -name "*.pkg" -o -name "*.exe" -o -name "*.tar.gz" -o -name "*.zip" \) | head -n 1)
+
+          if [ -z "$FILE" ]; then
+            echo "No installer found in build/" >&2
+            exit 1
+          fi
+
+          echo "path=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Code-sign installer
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/') && env.WINDOWS_CERTIFICATE_THUMBPRINT != ''
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\" } |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          & $signtool sign /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "${{ steps.installer.outputs.path }}"
+
+      - name: Notarize installer
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && env.APPLE_ID != ''
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool submit "${{ steps.installer.outputs.path }}" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "${{ steps.installer.outputs.path }}"
+
+      - uses: actions/upload-artifact@v7
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: installer-${{ matrix.os }}
+          path: ${{ steps.installer.outputs.path }}
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: installers
+
+      - name: Create GitHub release
+        run: gh release create "$GITHUB_REF_NAME" installers/* --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

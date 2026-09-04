@@ -229,7 +229,7 @@ private:
 #if !JUCE_MAC
 // Nothing to do on non-macOS systems
 // see neighbouring .mm file for macOS implementation
-void SinglePageBrowserComponent::useSystemTheme()
+inline void SinglePageBrowserComponent::useSystemTheme()
 {
 }
 #endif

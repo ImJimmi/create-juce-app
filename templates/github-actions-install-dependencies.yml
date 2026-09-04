@@ -1,0 +1,86 @@
+name: Install build dependencies
+description: Installs the compilers, build tools, and platform SDKs needed to configure and build this project.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      if: hashFiles('frontend/package.json') != ''
+      uses: actions/setup-node@v7
+      with:
+        node-version: 24
+
+    - name: Install Ninja
+      uses: seanmiddleditch/gha-setup-ninja@v4
+
+    - name: Install sccache
+      uses: mozilla-actions/sccache-action@v0.0.9
+
+    - name: Set up MSVC
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install clang-tidy and cppcheck (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: '1'
+      run: |
+        brew install cppcheck llvm
+        sudo ln -sf "$(brew --prefix llvm)/bin/clang-tidy" /usr/local/bin/clang-tidy
+
+    - name: Install clang-tidy and cppcheck (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/cppcheck-opensource/cppcheck/releases/latest"
+        $asset = $release.assets | Where-Object { $_.name -like "*-Setup.msi" } | Select-Object -First 1
+        $installerPath = Join-Path $env:RUNNER_TEMP $asset.name
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installerPath
+        $process = Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`" /quiet /norestart" -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+          throw "cppcheck installer failed with exit code $($process.ExitCode)"
+        }
+        Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\Cppcheck"
+
+        winget install --id LLVM.LLVM --silent --accept-source-agreements --accept-package-agreements
+        Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\LLVM\bin"
+
+    - name: Install NSIS
+      if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+      shell: pwsh
+      run: |
+        choco install nsis --no-progress -y
+        Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files (x86)\NSIS"
+
+    - name: Install Linux build dependencies
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libasound2-dev \
+          libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+          libfreetype-dev libfontconfig1-dev \
+          libglu1-mesa-dev mesa-common-dev
+
+        sudo apt-get install -y cppcheck
+
+        wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+        chmod +x /tmp/llvm.sh
+        LLVM_VERSION=$(grep -m1 '^CURRENT_LLVM_STABLE=' /tmp/llvm.sh | cut -d= -f2)
+        sudo /tmp/llvm.sh "$LLVM_VERSION"
+        sudo apt-get install -y "clang-tidy-$LLVM_VERSION"
+        sudo ln -sf "/usr/bin/clang-tidy-$LLVM_VERSION" /usr/local/bin/clang-tidy
+
+    - name: Install WebKitGTK
+      if: runner.os == 'Linux' && hashFiles('frontend/package.json') != ''
+      shell: bash
+      run: sudo apt-get install -y libwebkit2gtk-4.1-dev
+
+    - name: Install WebView2 SDK
+      if: runner.os == 'Windows' && hashFiles('frontend/package.json') != ''
+      shell: bash
+      run: |
+        nuget install Microsoft.Web.WebView2 -OutputDirectory "$RUNNER_TEMP/WebView2" -NonInteractive
+        echo "JUCE_WEBVIEW2_PACKAGE_LOCATION=$RUNNER_TEMP/WebView2" >> "$GITHUB_ENV"

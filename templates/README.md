@@ -62,3 +62,22 @@ cd build && cpack .
 ```
 
 _If using a multi-config generator, be sure to also specify the build config type with `-C <Config>`._
+
+## Continuous Integration
+
+[`.github/workflows/build.yml`](.github/workflows/build.yml) builds and tests VAR_PROJECT_NAME on macOS, Windows, and Linux for every pull request. Pushing a tag matching `v*` also packages an installer for each platform and publishes them as assets on a new GitHub release, with release notes generated automatically.
+
+Release builds are code-signed on macOS and Windows, and notarized on macOS, using the certificates below stored as repository secrets. Signing is optional - any build missing these secrets falls back to producing an unsigned installer.
+
+| Secret | Platform | Description |
+| ------ | -------- | ----------- |
+| `MACOS_CERTIFICATE_P12` | macOS | Base64-encoded `.p12` file containing the Developer ID Application and Installer certificates |
+| `MACOS_CERTIFICATE_PASSWORD` | macOS | Password for the `.p12` file |
+| `MACOS_KEYCHAIN_PASSWORD` | macOS | Password used to protect the temporary CI keychain |
+| `MACOS_CODESIGN_IDENTITY` | macOS | Signing identity for binaries, e.g. `Developer ID Application: Name (TEAMID)` |
+| `MACOS_INSTALLER_IDENTITY` | macOS | Signing identity for the PKG installer, e.g. `Developer ID Installer: Name (TEAMID)` |
+| `APPLE_ID` | macOS | Apple ID used to submit the installer for notarization |
+| `APPLE_APP_SPECIFIC_PASSWORD` | macOS | [App-specific password](https://support.apple.com/en-us/102654) for the Apple ID above |
+| `APPLE_TEAM_ID` | macOS | Apple Developer Team ID |
+| `WINDOWS_CERTIFICATE_PFX` | Windows | Base64-encoded `.pfx` code-signing certificate |
+| `WINDOWS_CERTIFICATE_PASSWORD` | Windows | Password for the `.pfx` file |

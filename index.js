@@ -419,6 +419,37 @@ async function makeInitialCMakeProject() {
     path.join(projectDir, "cmake", "Installers.cmake"),
   );
 
+  const workflowsDir = path.join(projectDir, ".github", "workflows");
+  fs.mkdirSync(workflowsDir, { recursive: true });
+  fs.copyFileSync(
+    path.join(templatesDir, "github-workflows-build.yml"),
+    path.join(workflowsDir, "build.yml"),
+  );
+
+  const installDependenciesActionDir = path.join(
+    projectDir,
+    ".github",
+    "actions",
+    "install-dependencies",
+  );
+  fs.mkdirSync(installDependenciesActionDir, { recursive: true });
+  fs.copyFileSync(
+    path.join(templatesDir, "github-actions-install-dependencies.yml"),
+    path.join(installDependenciesActionDir, "action.yml"),
+  );
+
+  const importSigningCertificatesActionDir = path.join(
+    projectDir,
+    ".github",
+    "actions",
+    "import-signing-certificates",
+  );
+  fs.mkdirSync(importSigningCertificatesActionDir, { recursive: true });
+  fs.copyFileSync(
+    path.join(templatesDir, "github-actions-import-signing-certificates.yml"),
+    path.join(importSigningCertificatesActionDir, "action.yml"),
+  );
+
   await addJuceDependency();
 
   await promptUser({
@@ -603,6 +634,14 @@ async function makeInitialCMakeProject() {
         `npm create vite@latest frontend -- --template ${config.webFramework}${config.webLanguage === "typescript" ? "-ts" : ""} --no-immediate --no-interactive`,
         { cwd: projectDir, stdio: "ignore" },
       );
+
+      // Release builds run `npm ci` (see WebFrontend.cmake), which requires
+      // a lockfile, so generate one now rather than leaving it to be
+      // generated (or fail) on the first Release build.
+      child_process.execSync("npm install --package-lock-only", {
+        cwd: path.join(projectDir, "frontend"),
+        stdio: "ignore",
+      });
     }
   }
 

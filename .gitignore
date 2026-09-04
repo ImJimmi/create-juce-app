@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .vscode/
+CLAUDE.md
+configs/
 my-juce-project/
 node_modules/
-configs/
