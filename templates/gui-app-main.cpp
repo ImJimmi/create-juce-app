@@ -71,7 +71,7 @@ public:
 private:
     enum class CommandID
     {
-        save = 0x1337
+        save = 0x1337,
     };
 
     [[nodiscard]] juce::ValueTree loadAppState() const
@@ -100,7 +100,7 @@ private:
         if (!settingsFile.deleteFile())
             jassertfalse;
 
-        if (auto result = settingsFile.create();
+        if (const auto result = settingsFile.create();
             result.failed())
         {
             DBG(result.getErrorMessage());

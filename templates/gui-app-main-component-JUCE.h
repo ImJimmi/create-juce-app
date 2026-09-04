@@ -17,7 +17,7 @@ public:
 
         minusButton.setButtonText("-");
         minusButton.setEnabled(*counter > 0);
-        minusButton.onClick = [this]() {
+        minusButton.onClick = [this] {
             counter = *counter - 1;
         };
         addAndMakeVisible(minusButton);
@@ -28,7 +28,7 @@ public:
         addAndMakeVisible(counterLabel);
 
         plusButton.setButtonText("+");
-        plusButton.onClick = [this]() {
+        plusButton.onClick = [this] {
             counter = *counter + 1;
         };
         addAndMakeVisible(plusButton);
