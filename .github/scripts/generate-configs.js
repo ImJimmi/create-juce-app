@@ -21,7 +21,6 @@ const unitTestFrameworks = [
 
 const guiAPIs = [
   { guiAPI: "component" },
-  { guiAPI: "jive" },
   { guiAPI: "webview", webFramework: "svelte", webLanguage: "typescript" },
 ];
 
