@@ -785,6 +785,75 @@ function addDependencyGoogleTest() {
   }
 }
 
+function addDependencyDoctest() {
+  if (config.dependencyType === "cpm") {
+    appendToCpmPackageLock(
+      "CPMDeclarePackage(doctest\n    GITHUB_REPOSITORY doctest/doctest\n    GIT_TAG v2.5.3\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+    );
+    setVar(
+      testsCMakeLists,
+      "ADD_DOCTEST",
+      "CPMGetPackage(doctest)\ninclude(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)",
+    );
+  } else if (config.dependencyType === "fetchContent") {
+    setVar(
+      testsCMakeLists,
+      "ADD_DOCTEST",
+      'message(STATUS "Fetching doctest...")\nFetchContent_Declare(doctest\n    GIT_REPOSITORY https://github.com/doctest/doctest.git\n    GIT_TAG v2.5.3\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(doctest)\ninclude(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)',
+    );
+  } else if (config.dependencyType === "submodule") {
+    const message = "Cloning doctest…";
+    process.stdout.write(message);
+    child_process.execSync(
+      "git submodule add https://github.com/doctest/doctest.git ./submodules/doctest",
+      { cwd: projectDir },
+    );
+    process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+    setVar(
+      testsCMakeLists,
+      "ADD_DOCTEST",
+      "add_subdirectory(\n    ${PROJECT_SOURCE_DIR}/submodules/doctest\n    ${PROJECT_BINARY_DIR}/submodules/doctest\n)\ninclude(${PROJECT_SOURCE_DIR}/submodules/doctest/scripts/cmake/doctest.cmake)",
+    );
+  }
+}
+
+function addDependencyTinyBdd() {
+  if (config.dependencyType === "cpm") {
+    appendToCpmPackageLock(
+      'CPMDeclarePackage(tiny-bdd\n    GITHUB_REPOSITORY ImJimmi/tiny-bdd\n    GIT_TAG main\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n    OPTIONS\n        "TBDD_GENERATE_TEST_RUNNER OFF"\n)',
+    );
+    setVar(
+      testsCMakeLists,
+      "ADD_TINY_BDD",
+      // tiny-bdd's own CMakeLists.txt uses CMAKE_SOURCE_DIR instead of
+      // CMAKE_CURRENT_SOURCE_DIR for its include path, so it needs fixing up
+      // when consumed as a dependency rather than as the top-level project.
+      "CPMGetPackage(tiny-bdd)\ntarget_include_directories(tiny-bdd INTERFACE ${tiny-bdd_SOURCE_DIR})",
+    );
+  } else if (config.dependencyType === "fetchContent") {
+    setVar(
+      testsCMakeLists,
+      "ADD_TINY_BDD",
+      'message(STATUS "Fetching tiny-bdd...")\nset(TBDD_GENERATE_TEST_RUNNER OFF CACHE BOOL "" FORCE)\nFetchContent_Declare(tiny-bdd\n    GIT_REPOSITORY https://github.com/ImJimmi/tiny-bdd.git\n    GIT_TAG main\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(tiny-bdd)\ntarget_include_directories(tiny-bdd INTERFACE ${tiny-bdd_SOURCE_DIR})',
+    );
+  } else if (config.dependencyType === "submodule") {
+    const message = "Cloning tiny-bdd…";
+    process.stdout.write(message);
+    child_process.execSync(
+      "git submodule add https://github.com/ImJimmi/tiny-bdd.git ./submodules/tiny-bdd",
+      { cwd: projectDir },
+    );
+    process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+    setVar(
+      testsCMakeLists,
+      "ADD_TINY_BDD",
+      'set(TBDD_GENERATE_TEST_RUNNER OFF CACHE BOOL "" FORCE)\nadd_subdirectory(\n    ${PROJECT_SOURCE_DIR}/submodules/tiny-bdd\n    ${PROJECT_BINARY_DIR}/submodules/tiny-bdd\n)\ntarget_include_directories(tiny-bdd INTERFACE ${PROJECT_SOURCE_DIR}/submodules/tiny-bdd)',
+    );
+  }
+}
+
 async function addUnitTestFramework() {
   await promptUser({
     type: "select",
@@ -793,7 +862,9 @@ async function addUnitTestFramework() {
     choices: [
       { title: "Catch2", value: "catch2" },
       { title: "GoogleTest", value: "googletest" },
+      { title: "doctest", value: "doctest" },
       { title: "JUCE's built-in API", value: "juce" },
+      { title: "Tiny-BDD", value: "tiny-bdd" },
     ],
   });
 
@@ -823,6 +894,30 @@ async function addUnitTestFramework() {
     fs.copyFileSync(
       path.join(templatesDir, "GoogleTest-Tests.cpp"),
       path.join(projectDir, "tests", "Tests.cpp"),
+    );
+  } else if (config.unitTestFramework === "doctest") {
+    fs.copyFileSync(
+      path.join(templatesDir, "Doctest-CMakeLists.txt"),
+      testsCMakeLists,
+    );
+
+    addDependencyDoctest();
+
+    fs.copyFileSync(
+      path.join(templatesDir, "Doctest-Tests.cpp"),
+      path.join(projectDir, "tests", "Tests.cpp"),
+    );
+  } else if (config.unitTestFramework === "tiny-bdd") {
+    fs.copyFileSync(
+      path.join(templatesDir, "Tiny-BDD-CMakeLists.txt"),
+      testsCMakeLists,
+    );
+
+    addDependencyTinyBdd();
+
+    fs.copyFileSync(
+      path.join(templatesDir, "Tiny-BDD-main.cpp"),
+      path.join(projectDir, "tests", "main.cpp"),
     );
   } else if (config.unitTestFramework === "juce") {
     fs.copyFileSync(

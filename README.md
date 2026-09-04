@@ -31,7 +31,7 @@ The various prompts will allow you customise almost every aspect of your JUCE pr
 - Project type (Plugin, Desktop App, or Console App)
 - Audio API (basic JUCE API, or the `juce_dsp` module)
 - GUI API (JUCE components, web front-end, or [JIVE](https://github.com/ImJimmi/JIVE))
-- Testing framework ([Catch2](https://github.com/catchorg/Catch2), [GoogleTest](https://github.com/google/googletest), or `juce::UnitTest`)
+- Testing framework ([Catch2](https://github.com/catchorg/Catch2), [GoogleTest](https://github.com/google/googletest), [doctest](https://github.com/doctest/doctest), [Tiny-BDD](https://github.com/ImJimmi/tiny-bdd), or `juce::UnitTest`)
 - Various additional extensions from the open-source community
 
 The generator also adds various defaults to get you started, such as:

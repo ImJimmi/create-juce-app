@@ -1,0 +1,15 @@
+VAR_ADD_TINY_BDD
+
+add_executable(VAR_PROJECT_ID-unit-tests
+    ${PROJECT_SOURCE_DIR}/tests/main.cpp
+)
+
+target_link_libraries(VAR_PROJECT_ID-unit-tests
+PRIVATE
+    tiny-bdd
+)
+
+add_test(
+    NAME VAR_PROJECT_ID-unit-tests
+    COMMAND $<TARGET_FILE:VAR_PROJECT_ID-unit-tests>
+)

@@ -13,9 +13,12 @@ const dependencySetups = [
   { dependencyType: "submodule", initGit: true },
 ];
 
-const unitTestFrameworks = [
+const defaultUnitTestFramework = { unitTestFramework: "tiny-bdd" };
+
+const otherUnitTestFrameworks = [
   { unitTestFramework: "catch2" },
   { unitTestFramework: "googletest" },
+  { unitTestFramework: "doctest" },
   { unitTestFramework: "juce" },
 ];
 
@@ -42,7 +45,21 @@ const projectTypes = [
   ...cross([{ projectType: "plugin" }], dspAPIs, guiAPIs),
 ];
 
-const permutations = cross(dependencySetups, unitTestFrameworks, projectTypes);
+// Unit-test frameworks are independent of the dependency/project-type
+// permutations below, so rather than crossing every framework with every
+// other option (which doesn't test anything new), the main matrix always
+// uses tiny-bdd - the fastest framework to fetch and build - and each other
+// framework gets a single dedicated job with a minimal default config just
+// to prove its CMake integration works.
+const permutations = [
+  ...cross(dependencySetups, [defaultUnitTestFramework], projectTypes),
+  ...otherUnitTestFrameworks.map((unitTestFramework) => ({
+    dependencyType: "cpm",
+    initGit: true,
+    projectType: "console",
+    ...unitTestFramework,
+  })),
+];
 
 function nameFor(options) {
   return [
