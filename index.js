@@ -288,12 +288,12 @@ async function addJuceDependency() {
     setVar(
       projectCMakeLists,
       "ADD_JUCE_DEPENDENCY",
-      `include(FetchContent)\n\nmessage(STATUS "Fetching JUCE (this may take a few minutes)...")\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG ${config.juceVersion}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)`,
+      `include(FetchContent)\n\nmessage(STATUS "Fetching JUCE...")\nFetchContent_Declare(JUCE\n    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git\n    GIT_TAG ${config.juceVersion}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(JUCE)`,
     );
   } else if (config.dependencyType === "submodule") {
     fs.mkdirSync(path.join(projectDir, "submodules"));
 
-    const message = "Cloning JUCE (this may take a few minutes)…";
+    const message = "Cloning JUCE…";
     process.stdout.write(message);
     child_process.execSync(
       "git submodule add https://github.com/juce-framework/JUCE.git ./submodules/JUCE",

@@ -71,6 +71,7 @@ if(CMAKE_SCRIPT_MODE_FILE)
             --enable=style
             --inline-suppr
             --suppress=internalAstError
+            --suppress=preprocessorErrorDirective
             --suppress=unknownMacro
             --suppress=unmatchedSuppression
             --inconclusive

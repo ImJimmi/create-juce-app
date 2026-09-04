@@ -128,4 +128,5 @@ private:
     std::unique_ptr<Window> window;
 };
 
+// NOLINTNEXTLINE
 START_JUCE_APPLICATION(Application)
