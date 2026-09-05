@@ -22,13 +22,16 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     env:
-      SCCACHE_DIR: ${{ runner.temp }}/sccache
       SCCACHE_CACHE_SIZE: 2G
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      - name: Set SCCACHE_DIR
+        shell: bash
+        run: echo "SCCACHE_DIR=${RUNNER_TEMP}/sccache" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies

@@ -329,9 +329,42 @@ async function addJuceDependency() {
   }
 }
 
-// Maps an effect category onto the equivalent category for each plugin format that supports
-// finer-grained categorisation than a plain "effect". VST2 and AAX have no equivalent for some
-// categories, in which case `vst2`/`aax` is left at its format's default and omitted below.
+async function addPluginvalDependency() {
+  const gitTag = await fetchLatestGitHubTag("Tracktion/pluginval", "Pluginval");
+
+  if (config.dependencyType === "cpm") {
+    appendToCpmPackageLock(
+      `CPMDeclarePackage(pluginval\n    GITHUB_REPOSITORY Tracktion/pluginval\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
+    );
+    setVar(
+      projectCMakeLists,
+      "ADD_PLUGINVAL",
+      `set(PLUGINVAL_FETCH_JUCE OFF)\nCPMGetPackage(pluginval)`,
+    );
+  } else if (config.dependencyType === "fetchContent") {
+    setVar(
+      projectCMakeLists,
+      "ADD_PLUGINVAL",
+      `FetchContent_Declare(pluginval\n    GIT_REPOSITORY https://github.com/Tracktion/pluginval.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n)\nset(PLUGINVAL_FETCH_JUCE OFF)\nFetchContent_MakeAvailable(pluginval)`,
+    );
+  } else if (config.dependencyType === "submodule") {
+    child_process.execSync(
+      "git submodule add https://github.com/Tracktion/pluginval.git ./submodules/pluginval",
+      { cwd: projectDir, stdio: "pipe" },
+    );
+    child_process.execSync(`git checkout ${gitTag}`, {
+      cwd: path.join(projectDir, "submodules", "pluginval"),
+      stdio: "pipe",
+    });
+
+    setVar(
+      projectCMakeLists,
+      "ADD_PLUGINVAL",
+      "set(pluginval_SOURCE_DIR ${CMAKE_PROJECT_DIR}/submodules/pluginval)\nset(PLUGINVAL_FETCH_JUCE OFF)\nadd_subdirectory(${pluginval_SOURCE_DIR})",
+    );
+  }
+}
+
 const pluginEffectCategories = {
   dynamics: { vst3: "Dynamics", vst2: "kPlugCategEffect", aax: "Dynamics" },
   eq: { vst3: "EQ", vst2: "kPlugCategEffect", aax: "EQ" },
@@ -855,6 +888,13 @@ async function makeInitialCMakeProject() {
         `include(WebFrontend)\nadd_web_frontend(${config.projectID})\n`,
       );
     }
+
+    await addPluginvalDependency();
+    setVar(
+      projectCMakeLists,
+      "ADD_TESTS_PLUGINVAL",
+      `include(\${pluginval_SOURCE_DIR}/tests/AddPluginvalTests.cmake)\nadd_pluginval_tests(${config.projectID})`,
+    );
   } else if (config.projectType === "desktop") {
     setVar(projectCMakeLists, "JUCE_ADD_TARGET_FUNCTION", "juce_add_gui_app");
     setVar(

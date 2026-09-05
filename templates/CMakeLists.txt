@@ -8,8 +8,9 @@ include(CppCheck)
 
 VAR_INIT_CPM
 VAR_ADD_JUCE_DEPENDENCY
-VAR_VST2_SDK_PATH
+VAR_ADD_PLUGINVAL
 
+VAR_VST2_SDK_PATH
 VAR_JUCE_ADD_TARGET_FUNCTION(
     VAR_PROJECT_ID
     PRODUCT_NAME "VAR_PROJECT_NAME"
@@ -85,6 +86,7 @@ add_cppcheck(VAR_PROJECT_ID)
 VAR_ADD_WEB_FRONTEND
 include(CTest)
 add_subdirectory(tests)
+VAR_ADD_TESTS_PLUGINVAL
 
 include(Installers)
 add_installation_rules(

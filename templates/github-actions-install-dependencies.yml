@@ -93,3 +93,26 @@ runs:
       run: |
         nuget install Microsoft.Web.WebView2 -OutputDirectory "$RUNNER_TEMP/WebView2" -NonInteractive
         echo "JUCE_WEBVIEW2_PACKAGE_LOCATION=$RUNNER_TEMP/WebView2" >> "$GITHUB_ENV"
+
+    - name: Install Pluginval (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o "$RUNNER_TEMP/pluginval.zip"
+        unzip -q "$RUNNER_TEMP/pluginval.zip" -d "$RUNNER_TEMP/pluginval"
+        xattr -cr "$RUNNER_TEMP/pluginval/pluginval.app"
+        echo "$RUNNER_TEMP/pluginval/pluginval.app/Contents/MacOS" >> "$GITHUB_PATH"
+
+    - name: Install Pluginval (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o "$RUNNER_TEMP/pluginval.zip"
+        unzip -q "$RUNNER_TEMP/pluginval.zip" -d "$RUNNER_TEMP/pluginval"
+        chmod +x "$RUNNER_TEMP/pluginval/pluginval"
+        echo "$RUNNER_TEMP/pluginval" >> "$GITHUB_PATH"
+
+    - name: Install Pluginval (Linux)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: choco install pluginval
