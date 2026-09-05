@@ -759,7 +759,7 @@ async function makeInitialCMakeProject() {
       setVar(
         path.join(projectSourceDir, "Processor.h"),
         "PREPARE_TO_PLAY_IMPL",
-        "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  blockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
+        "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  expectedBlockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
       );
       setVar(
         path.join(projectSourceDir, "Processor.h"),
@@ -774,7 +774,7 @@ async function makeInitialCMakeProject() {
       setVar(
         path.join(projectSourceDir, "Processor.h"),
         "PREPARE_TO_PLAY_IMPL",
-        "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(blockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
+        "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(expectedBlockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
       );
       setVar(
         path.join(projectSourceDir, "Processor.h"),

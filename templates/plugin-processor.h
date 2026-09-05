@@ -30,7 +30,7 @@ public:
 
     ~Processor() override = default;
 
-    void prepareToPlay(double sampleRate, int blockSize) override
+    void prepareToPlay(double sampleRate, int expectedBlockSize) override
     {
         VAR_PREPARE_TO_PLAY_IMPL
     }
