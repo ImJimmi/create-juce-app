@@ -594,7 +594,6 @@ async function makeInitialCMakeProject() {
       choices: [
         { title: "Traditional JUCE Components", value: "component" },
         { title: "Web front-end", value: "webview" },
-        { title: "JIVE", value: "jive" },
       ],
     });
 

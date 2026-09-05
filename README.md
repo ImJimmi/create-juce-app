@@ -24,7 +24,7 @@ The various prompts will allow you customise almost every aspect of your JUCE pr
 - Project type (Plugin, Desktop App, or Console App)
 - Audio API (basic JUCE API, or the `juce_dsp` module)
 - Plugin type (Effect, Synth, or MIDI Effect), MIDI input/output, and (for effects) a specific category such as Dynamics, EQ, Filter, Reverb, etc. - categorising the plugin across all supported formats (VST3, AU, AAX, VST)
-- GUI API (JUCE components, web front-end, or [JIVE](https://github.com/ImJimmi/JIVE))
+- GUI API (JUCE components or a web front-end)
 - Testing framework ([Catch2](https://github.com/catchorg/Catch2), [GoogleTest](https://github.com/google/googletest), [doctest](https://github.com/doctest/doctest), [Tiny-BDD](https://github.com/ImJimmi/tiny-bdd), or `juce::UnitTest`)
 - Various additional extensions from the open-source community
 
