@@ -64,7 +64,11 @@ function(add_web_frontend TARGET)
 
     foreach(TARG IN LISTS INDIVIDUAL_TARGETS)
         if (APPLE)
-            set(RESOURCES_DIR "$<TARGET_BUNDLE_DIR:${TARG}>/Contents/Resources")
+            if ("${TARG}" MATCHES "^${TARGET}_LV2$")
+                set(RESOURCES_DIR "$<TARGET_FILE:${TARG}>/Contents/Resources")
+            else()
+                set(RESOURCES_DIR "$<TARGET_BUNDLE_DIR:${TARG}>/Contents/Resources")
+            endif()
         else()
             if ("${TARG}" MATCHES "^${TARGET}_(AAX|AU|AUv3|LV2|Unity|VST|VST3)$")
                 set(RESOURCES_DIR "$<TARGET_FILE_DIR:${TARG}>/../Resources")
@@ -75,7 +79,7 @@ function(add_web_frontend TARGET)
 
         add_custom_command(
             POST_BUILD
-            TARGET ${TARGET}
+            TARGET ${TARG}
             COMMAND ${CMAKE_COMMAND} -E echo "Copying ${CMAKE_CURRENT_BINARY_DIR}/frontend.zip to ${RESOURCES_DIR}..."
             COMMAND ${CMAKE_COMMAND} -E make_directory "${RESOURCES_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/frontend.zip" "${RESOURCES_DIR}/frontend.zip"
