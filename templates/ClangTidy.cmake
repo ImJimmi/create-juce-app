@@ -2,19 +2,15 @@ include_guard()
 
 find_program(CLANG_TIDY_COMMAND clang-tidy)
 
-if(NOT CLANG_TIDY_COMMAND)
+if (NOT CLANG_TIDY_COMMAND)
     if (APPLE)
-        message(WARNING "clang-tidy not found. Install using\n  $ brew install llvm\n  Then link it with\n  $ sudo ln -sf $(brew --prefix llvm)/bin/clang-tidy /usr/local/bin/clang-tidy")
+        message(FATAL_ERROR "clang-tidy not found. Install using\n  $ brew install llvm\n  Then link it with\n  $ sudo ln -sf $(brew --prefix llvm)/bin/clang-tidy /usr/local/bin/clang-tidy")
     elseif(WIN32)
-        message(WARNING "clang-tidy not found. Install using\n  $ winget install LLVM.LLVM\n  Or install the 'C++ Clang tools for Windows' Visual Studio component")
+        message(FATAL_ERROR "clang-tidy not found. Install using\n  $ winget install LLVM.LLVM\n  Or install the 'C++ Clang tools for Windows' Visual Studio component")
     endif()
 endif()
 
 function(add_clang_tidy TARGET)
-    if (NOT CLANG_TIDY_COMMAND)
-        return()
-    endif()
-
     set(OPTIONS "")
     set(ONE_VALUE_KEYWORDS HEADER_FILTER)
     set(MULTI_VALUE_KEYWORDS "")
