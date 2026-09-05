@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +21,10 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
+    env:
+      SCCACHE_DIR: ${{ runner.temp }}/sccache
+      SCCACHE_CACHE_SIZE: 2G
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -29,9 +33,32 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
 
-      # Only the tag-triggered release build needs to sign and package
-      # installers, so the certificate/signing/notarizing steps below are all
-      # skipped for pull requests.
+      - name: Cache CPM dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/CPM
+          key: cpm-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('cpm-package-lock.cmake') }}
+          restore-keys: |
+            cpm-${{ runner.os }}-${{ github.ref }}
+            cpm-${{ runner.os }}
+
+      - name: Cache FetchContent dependencies
+        uses: actions/cache@v6
+        with:
+          path: build/_deps
+          key: fetchcontent-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt') }}
+          restore-keys: |
+            fetchcontent-${{ runner.os }}-${{ github.ref }}
+            fetchcontent-${{ runner.os }}
+
+      - name: Cache sccache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-${{ runner.os }}-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            sccache-${{ runner.os }}-${{ github.ref }}
+            sccache-${{ runner.os }}
 
       - name: Import signing certificates
         if: startsWith(github.ref, 'refs/tags/')
@@ -43,7 +70,7 @@ jobs:
           windows-certificate-pfx: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
           windows-certificate-password: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
-      - name: Configure
+      - name: CMake Configure
         shell: bash
         run: |
           EXTRA_ARGS=()
@@ -56,10 +83,10 @@ jobs:
 
           cmake -B build -G "Ninja Multi-Config" -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache "${EXTRA_ARGS[@]}"
 
-      - name: Build
+      - name: CMake Build
         run: cmake --build build --config Release
 
-      - name: Test
+      - name: CTest
         run: ctest --test-dir build -C Release --output-on-failure
 
       - name: Show sccache stats
@@ -77,7 +104,7 @@ jobs:
               codesign --force --deep --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "$bundle"
             done
 
-      - name: Package
+      - name: CPack
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         working-directory: build
@@ -97,7 +124,7 @@ jobs:
         id: installer
         shell: bash
         run: |
-          FILE=$(find build -maxdepth 1 -type f \( -name "*.pkg" -o -name "*.exe" -o -name "*.tar.gz" -o -name "*.zip" \) | head -n 1)
+          FILE=$(find build -maxdepth 1 -type f \( -name "*.pkg" -o -name "*.exe" -o -name "*.tar.gz" -o -name "*.zip" \) -not -name "frontend.zip" | head -n 1)
 
           if [ -z "$FILE" ]; then
             echo "No installer found in build/" >&2
