@@ -246,6 +246,19 @@ async function fetchLatestCPM() {
   process.stdout.write("\r" + " ".repeat(message.length) + "\r");
 }
 
+async function fetchLatestGitHubTag(repo, displayName) {
+  const message = `Fetching latest ${displayName} release…`;
+  process.stdout.write(message);
+
+  const release = await fetchGitHubJson(
+    `https://api.github.com/repos/${repo}/releases/latest`,
+  );
+
+  process.stdout.write("\r" + " ".repeat(message.length) + "\r");
+
+  return release.tag_name;
+}
+
 async function addJuceDependency() {
   let dependencyChoices = [
     { title: "Using CPM (recommended)", value: "cpm" },
@@ -937,10 +950,12 @@ async function makeInitialCMakeProject() {
   return 0;
 }
 
-function addDependencyCatch2() {
+async function addDependencyCatch2() {
+  const gitTag = await fetchLatestGitHubTag("catchorg/Catch2", "Catch2");
+
   if (config.dependencyType === "cpm") {
     appendToCpmPackageLock(
-      "CPMDeclarePackage(Catch2\n    GITHUB_REPOSITORY catchorg/Catch2\n    GIT_TAG v3.16.0\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+      `CPMDeclarePackage(Catch2\n    GITHUB_REPOSITORY catchorg/Catch2\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
     );
     setVar(
       testsCMakeLists,
@@ -951,7 +966,7 @@ function addDependencyCatch2() {
     setVar(
       testsCMakeLists,
       "ADD_CATCH2",
-      'message(STATUS "Fetching Catch2...")\nFetchContent_Declare(Catch2\n    GIT_REPOSITORY https://github.com/catchorg/Catch2.git\n    GIT_TAG v3.15.3\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(Catch2)\ninclude(${Catch2_SOURCE_DIR}/extras/Catch.cmake)',
+      `message(STATUS "Fetching Catch2...")\nFetchContent_Declare(Catch2\n    GIT_REPOSITORY https://github.com/catchorg/Catch2.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(Catch2)\ninclude(\${Catch2_SOURCE_DIR}/extras/Catch.cmake)`,
     );
   } else if (config.dependencyType === "submodule") {
     const message = "Cloning Catch2…";
@@ -960,6 +975,10 @@ function addDependencyCatch2() {
       "git submodule add https://github.com/catchorg/Catch2.git ./submodules/Catch2",
       { cwd: projectDir },
     );
+    child_process.execSync(`git checkout ${gitTag}`, {
+      cwd: path.join(projectDir, "submodules", "Catch2"),
+      stdio: "pipe",
+    });
     process.stdout.write("\r" + " ".repeat(message.length) + "\r");
 
     setVar(
@@ -970,10 +989,12 @@ function addDependencyCatch2() {
   }
 }
 
-function addDependencyGoogleTest() {
+async function addDependencyGoogleTest() {
+  const gitTag = await fetchLatestGitHubTag("google/googletest", "GoogleTest");
+
   if (config.dependencyType === "cpm") {
     appendToCpmPackageLock(
-      "CPMDeclarePackage(googletest\n    GITHUB_REPOSITORY google/googletest\n    GIT_TAG v1.18.0\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+      `CPMDeclarePackage(googletest\n    GITHUB_REPOSITORY google/googletest\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
     );
     setVar(
       testsCMakeLists,
@@ -984,7 +1005,7 @@ function addDependencyGoogleTest() {
     setVar(
       testsCMakeLists,
       "ADD_GOOGLETEST",
-      'message(STATUS "Fetching GoogleTest...")\nFetchContent_Declare(googletest\n    GIT_REPOSITORY https://github.com/google/googletest.git\n    GIT_TAG v1.18.0\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(googletest)\ninclude(GoogleTest)',
+      `message(STATUS "Fetching GoogleTest...")\nFetchContent_Declare(googletest\n    GIT_REPOSITORY https://github.com/google/googletest.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(googletest)\ninclude(GoogleTest)`,
     );
   } else if (config.dependencyType === "submodule") {
     const message = "Cloning GoogleTest…";
@@ -993,6 +1014,10 @@ function addDependencyGoogleTest() {
       "git submodule add https://github.com/google/googletest.git ./submodules/googletest",
       { cwd: projectDir },
     );
+    child_process.execSync(`git checkout ${gitTag}`, {
+      cwd: path.join(projectDir, "submodules", "googletest"),
+      stdio: "pipe",
+    });
     process.stdout.write("\r" + " ".repeat(message.length) + "\r");
 
     setVar(
@@ -1003,10 +1028,12 @@ function addDependencyGoogleTest() {
   }
 }
 
-function addDependencyDoctest() {
+async function addDependencyDoctest() {
+  const gitTag = await fetchLatestGitHubTag("doctest/doctest", "doctest");
+
   if (config.dependencyType === "cpm") {
     appendToCpmPackageLock(
-      "CPMDeclarePackage(doctest\n    GITHUB_REPOSITORY doctest/doctest\n    GIT_TAG v2.5.3\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)",
+      `CPMDeclarePackage(doctest\n    GITHUB_REPOSITORY doctest/doctest\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n)`,
     );
     setVar(
       testsCMakeLists,
@@ -1017,7 +1044,7 @@ function addDependencyDoctest() {
     setVar(
       testsCMakeLists,
       "ADD_DOCTEST",
-      'message(STATUS "Fetching doctest...")\nFetchContent_Declare(doctest\n    GIT_REPOSITORY https://github.com/doctest/doctest.git\n    GIT_TAG v2.5.3\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(doctest)\ninclude(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)',
+      `message(STATUS "Fetching doctest...")\nFetchContent_Declare(doctest\n    GIT_REPOSITORY https://github.com/doctest/doctest.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n)\nFetchContent_MakeAvailable(doctest)\ninclude(\${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)`,
     );
   } else if (config.dependencyType === "submodule") {
     const message = "Cloning doctest…";
@@ -1026,6 +1053,10 @@ function addDependencyDoctest() {
       "git submodule add https://github.com/doctest/doctest.git ./submodules/doctest",
       { cwd: projectDir },
     );
+    child_process.execSync(`git checkout ${gitTag}`, {
+      cwd: path.join(projectDir, "submodules", "doctest"),
+      stdio: "pipe",
+    });
     process.stdout.write("\r" + " ".repeat(message.length) + "\r");
 
     setVar(
@@ -1095,7 +1126,7 @@ async function addUnitTestFramework() {
       testsCMakeLists,
     );
 
-    addDependencyCatch2();
+    await addDependencyCatch2();
 
     fs.copyFileSync(
       path.join(templatesDir, "Catch2-Tests.cpp"),
@@ -1107,7 +1138,7 @@ async function addUnitTestFramework() {
       testsCMakeLists,
     );
 
-    addDependencyGoogleTest();
+    await addDependencyGoogleTest();
 
     fs.copyFileSync(
       path.join(templatesDir, "GoogleTest-Tests.cpp"),
@@ -1119,7 +1150,7 @@ async function addUnitTestFramework() {
       testsCMakeLists,
     );
 
-    addDependencyDoctest();
+    await addDependencyDoctest();
 
     fs.copyFileSync(
       path.join(templatesDir, "Doctest-Tests.cpp"),
