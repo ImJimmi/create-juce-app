@@ -50,10 +50,16 @@ private:
 
         static juce::ZipFile zip{
 #if JUCE_MAC
+    #if JucePlugin_Build_LV2
+            currentApplicationFile
+                .getSiblingFile("Resources")
+                .getChildFile("frontend.zip"),
+    #else
             currentApplicationFile
                 .getChildFile("Contents")
                 .getChildFile("Resources")
                 .getChildFile("frontend.zip"),
+    #endif
 #else
             currentApplicationFile
                 .getParentDirectory()
