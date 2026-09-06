@@ -38,8 +38,8 @@ function(add_installation_rules)
     set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME} v${PROJECT_VERSION}")
     set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_FILE_NAME} PARENT_SCOPE)
 
-    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/installer/License.rtf")
-    set(CPACK_RESOURCE_FILE_README  "${CMAKE_CURRENT_SOURCE_DIR}/installer/ReadMe.rtf")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/installers/License.rtf")
+    set(CPACK_RESOURCE_FILE_README  "${CMAKE_CURRENT_SOURCE_DIR}/installers/ReadMe.rtf")
 
     if (APPLE)
         set(CPACK_GENERATOR "productbuild")

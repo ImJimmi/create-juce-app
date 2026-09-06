@@ -45,4 +45,4 @@ The generator also adds various defaults to get you started, such as:
 
 All contributions are welcome - especially if you'd like to add integration for your own open-source extension.
 
-The project uses a single source file, [`index.js`](./index.js), for ease-of-development, and the [`templates/`](./templates/) directory contains all the template source files and assets.
+Start in [index.js](./index.js) and add any extra prompts needed to `main()`, then look in the various source files in [source/](./source/) to implement the choices the user makes. Follow the patterns established by existing code, and try to keep it nice and simple!

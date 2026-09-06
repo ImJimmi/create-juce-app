@@ -6,27 +6,24 @@ import path from "node:path";
 const outputDir = path.resolve(process.argv[2] ?? "configs");
 
 const dependencySetups = [
-  { dependencyType: "cpm", initGit: true },
-  { dependencyType: "cpm", initGit: false },
-  { dependencyType: "fetchContent", initGit: true },
-  { dependencyType: "fetchContent", initGit: false },
-  { dependencyType: "submodule", initGit: true },
+  { dependencyType: "cpm" },
+  { dependencyType: "fetchContent" },
+  { dependencyType: "submodule" },
 ];
 
-const defaultUnitTestFramework = { unitTestFramework: "tiny-bdd" };
-
+const defaultUnitTestFramework = { unitTestFramework: "none" };
 const otherUnitTestFrameworks = [
   { unitTestFramework: "catch2" },
   { unitTestFramework: "googletest" },
   { unitTestFramework: "doctest" },
   { unitTestFramework: "juce" },
+  { unitTestFramework: "none" },
 ];
 
 const guiAPIs = [
   { guiAPI: "component" },
   { guiAPI: "webview", webFramework: "svelte", webLanguage: "typescript" },
 ];
-
 const dspAPIs = [{ dspAPI: "basic" }, { dspAPI: "juce_dsp" }];
 
 function cross(...axes) {
@@ -45,12 +42,6 @@ const projectTypes = [
   ...cross([{ projectType: "plugin" }], dspAPIs, guiAPIs),
 ];
 
-// Unit-test frameworks are independent of the dependency/project-type
-// permutations below, so rather than crossing every framework with every
-// other option (which doesn't test anything new), the main matrix always
-// uses tiny-bdd - the fastest framework to fetch and build - and each other
-// framework gets a single dedicated job with a minimal default config just
-// to prove its CMake integration works.
 const permutations = [
   ...cross(dependencySetups, [defaultUnitTestFramework], projectTypes),
   ...otherUnitTestFrameworks.map((unitTestFramework) => ({
@@ -87,9 +78,15 @@ function configFor(options) {
     ...(options.projectType === "plugin" && {
       pluginCode: "Cjap",
       pluginManufacturerCode: "Cjac",
-      // Every format except VST (legacy VST2), which needs a proprietary SDK
-      // that isn't available in CI.
-      pluginFormats: ["AAX", "AU", "AUv3", "LV2", "Standalone", "Unity", "VST3"],
+      pluginFormats: [
+        "AAX",
+        "AU",
+        "AUv3",
+        "LV2",
+        "Standalone",
+        "Unity",
+        "VST3",
+      ],
       pluginType: "fx",
       midiIO: [],
       pluginEffectCategory: "none",

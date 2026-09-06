@@ -6,8 +6,8 @@ include(CommonConfig)
 include(ClangTidy)
 include(CppCheck)
 
-VAR_INIT_CPM
-VAR_ADD_JUCE_DEPENDENCY
+VAR_INIT_PACKAGE_MANAGER
+VAR_ADD_JUCE
 VAR_ADD_PLUGINVAL
 
 VAR_VST2_SDK_PATH
@@ -84,8 +84,8 @@ add_clang_tidy(VAR_PROJECT_ID)
 add_cppcheck(VAR_PROJECT_ID)
 
 VAR_ADD_WEB_FRONTEND
-include(CTest)
-add_subdirectory(tests)
+
+VAR_ADD_TESTS
 VAR_ADD_TESTS_PLUGINVAL
 
 include(Installers)
