@@ -406,15 +406,19 @@ async function main() {
     }
 
     if (config.projectType === "plugin") {
-      await promptUser({
-        type: "select",
-        name: "dspAPI",
-        message: "DSP API:",
-        choices: [
-          { title: "Basic JUCE audio API", value: "basic" },
-          { title: "juce_dsp module", value: "juce_dsp" },
-        ],
-      });
+      if (config.pluginType === "midi") {
+        config.dspAPI = "basic";
+      } else {
+        await promptUser({
+          type: "select",
+          name: "dspAPI",
+          message: "DSP API:",
+          choices: [
+            { title: "Basic JUCE audio API", value: "basic" },
+            { title: "juce_dsp module", value: "juce_dsp" },
+          ],
+        });
+      }
     }
   }
 
