@@ -86,6 +86,7 @@ async function makeInitialProjectDir() {
     ".github",
     "actions",
   );
+  config.projectVscodeDir = path.join(config.projectDir, ".vscode");
 
   if (!fs.existsSync(config.projectDir)) {
     fs.mkdirSync(config.projectDir);

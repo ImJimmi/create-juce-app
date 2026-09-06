@@ -11,6 +11,7 @@ export function addNonTemplatedProjectFiles(config) {
   fs.mkdirSync(config.projectInstallersDir);
   fs.mkdirSync(config.projectGhaWorkflowsDir, { recursive: true });
   fs.mkdirSync(config.projectGhaActionsDir, { recursive: true });
+  fs.mkdirSync(config.projectVscodeDir);
 
   // .gitignore
   fs.writeFileSync(
@@ -75,6 +76,12 @@ export function addNonTemplatedProjectFiles(config) {
   fs.copyFileSync(
     path.join(templatesDir, "Installers.cmake"),
     path.join(config.projectCmakeDir, "Installers.cmake"),
+  );
+
+  // VS Code
+  fs.copyFileSync(
+    path.join(templatesDir, "launch.json"),
+    path.join(config.projectVscodeDir, "launch.json"),
   );
 
   // GitHub Actions
