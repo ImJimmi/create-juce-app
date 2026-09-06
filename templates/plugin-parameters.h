@@ -14,7 +14,7 @@ template <typename ParameterType>
 
 struct OutputGainParameter
 {
-    static inline const juce::ParameterID id{ "outGain" };       // NOLINT
+    static inline const juce::ParameterID id{ "outGain", 1 };    // NOLINT
     static inline const juce::String name{ "Output Gain (dB)" }; // NOLINT
     static inline const juce::NormalisableRange<float> range{ -12.0f, 12.0f, 0.01f };
     static inline const float defaultValue = 0.0f;
@@ -36,8 +36,8 @@ struct OutputGainParameter
 
 struct BypassParameter
 {
-    static inline const juce::ParameterID id{ "bypass" }; // NOLINT
-    static inline const juce::String name{ "Bypass?" };   // NOLINT
+    static inline const juce::ParameterID id{ "bypass", 1 }; // NOLINT
+    static inline const juce::String name{ "Bypass?" };      // NOLINT
     static inline const bool defaultValue = false;
 
     [[nodiscard]] static auto& getFrom(const juce::AudioProcessorValueTreeState& apvts)
