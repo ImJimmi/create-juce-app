@@ -72,7 +72,6 @@ async function makeInitialProjectDir() {
     config.projectDir,
     config.relativeSourceDir,
   );
-  config.bundleID = `com.${toKebabCase(config.companyName)}.${config.projectID}`;
   config.projectCmakeDir = path.join(config.projectDir, "cmake");
   config.projectCMakeLists = path.join(config.projectDir, "CMakeLists.txt");
   config.projectAssetsDir = path.join(config.projectDir, "assets");
@@ -168,6 +167,8 @@ function initialiseWebFrontend() {
 }
 
 async function populateCMakeTemplates() {
+  config.bundleID = `com.${toKebabCase(config.companyName)}.${config.projectID}`;
+
   setVar(config.projectCMakeLists, "PROJECT_ID", config.projectID);
   setVar(config.projectCMakeLists, "PROJECT_NAME", config.projectName);
   setVar(config.projectCMakeLists, "COMPANY_NAME", config.companyName);
