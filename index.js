@@ -364,6 +364,8 @@ async function main() {
           { title: "Other", value: "none" },
         ],
       });
+    } else {
+      config.pluginEffectCategory = "none";
     }
   }
 
