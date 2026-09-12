@@ -9,6 +9,7 @@ include(CppCheck)
 VAR_INIT_PACKAGE_MANAGER
 VAR_ADD_JUCE
 VAR_ADD_PLUGINVAL
+VAR_ADD_GAMMA
 
 VAR_VST2_SDK_PATH
 VAR_JUCE_ADD_TARGET_FUNCTION(
@@ -55,6 +56,7 @@ PRIVATE
 
 target_link_libraries(VAR_PROJECT_ID
 PRIVATE
+    VAR_LINK_GAMMA
     VAR_LINK_LIBRARIES
 
     juce::juce_recommended_config_flags

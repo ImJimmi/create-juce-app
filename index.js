@@ -419,6 +419,7 @@ async function main() {
           choices: [
             { title: "Basic JUCE audio API", value: "basic" },
             { title: "juce_dsp module", value: "juce_dsp" },
+            { title: "Gamma", value: "gamma" },
           ],
         });
       }

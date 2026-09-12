@@ -4,7 +4,7 @@ import path from "node:path";
 import os from "node:os";
 
 import { fetchGitHubJson, fetchLatestGitHubTag } from "./GitHub.js";
-import { setVar } from "./utils.js";
+import { setVar, templatesDir } from "./utils.js";
 
 export async function fetchLatestCPM(config) {
   const message = "Fetching latest CPM.cmake…";
@@ -208,4 +208,25 @@ export function addTinyBdd(config) {
     config.testsCMakeLists,
     'set(TBDD_GENERATE_TEST_RUNNER OFF CACHE BOOL "" FORCE)',
   );
+}
+
+export async function addGamma(config) {
+  fs.copyFileSync(
+    path.join(templatesDir, "Gamma.cmake"),
+    path.join(config.projectCmakeDir, "Gamma.cmake"),
+  );
+  await addDependency(
+    config,
+    "Gamma",
+    "LancePutnam",
+    "c883c71ac1f400e1dd3c1c8c966a7f945a17acd1",
+    "ADD_GAMMA",
+    path.join(config.projectCmakeDir, "Gamma.cmake"),
+    "",
+    "",
+    true,
+  );
+
+  setVar(config.projectCMakeLists, "ADD_GAMMA", "include(Gamma)");
+  setVar(config.projectCMakeLists, "LINK_GAMMA", "Gamma");
 }

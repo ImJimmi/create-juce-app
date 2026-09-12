@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { addPluginval } from "./dependencies.js";
+import { addPluginval, addGamma } from "./dependencies.js";
 import { setVar, templatesDir } from "./utils.js";
 
 const pluginEffectCategoriesMap = {
@@ -215,6 +215,36 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       path.join(config.projectSourceDir, "Processor.h"),
       "PREPARE_TO_PLAY_IMPL",
       "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(expectedBlockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
+    );
+  } else if (config.dspAPI === "gamma") {
+    addGamma(config);
+
+    if (isSynth) {
+      fs.copyFileSync(
+        path.join(templatesDir, "synth-main-audio-processor-gamma.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "mainAudioProcessor->processBlock(audioBuffer, midiBuffer);",
+      );
+    } else {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-gamma.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+      );
+    }
+
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "PREPARE_TO_PLAY_IMPL",
+      "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  expectedBlockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
     );
   }
 

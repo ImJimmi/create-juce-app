@@ -24,7 +24,11 @@ const guiAPIs = [
   { guiAPI: "component" },
   { guiAPI: "webview", webFramework: "svelte", webLanguage: "typescript" },
 ];
-const dspAPIs = [{ dspAPI: "basic" }, { dspAPI: "juce_dsp" }];
+const dspAPIs = [
+  { dspAPI: "basic" },
+  { dspAPI: "juce_dsp" },
+  { dspAPI: "gamma" },
+];
 
 function cross(...axes) {
   return axes.reduce(

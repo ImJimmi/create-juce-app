@@ -10,11 +10,14 @@ export function getArgValue(argPrefix) {
 }
 
 export function setVar(file, varName, value) {
+  const content = fs.readFileSync(file, { encoding: "utf8" });
+
+  if (!content.includes(varName))
+    throw new Error(`No variable named VAR_${varName} in ${file}`);
+
   fs.writeFileSync(
     file,
-    fs
-      .readFileSync(file, { encoding: "utf8" })
-      .replace(new RegExp(`VAR_${varName}(?![A-Z0-9_])`, "g"), value),
+    content.replace(new RegExp(`VAR_${varName}(?![A-Z0-9_])`, "g"), value),
     { encoding: "utf8" },
   );
 }
