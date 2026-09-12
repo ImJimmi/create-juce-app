@@ -5,6 +5,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CommonConfig)
 include(ClangTidy)
 include(CppCheck)
+enable_testing()
+
 
 VAR_INIT_PACKAGE_MANAGER
 VAR_ADD_JUCE
