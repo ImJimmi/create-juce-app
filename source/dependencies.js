@@ -66,10 +66,15 @@ async function addDependency(
       `${preInclude}CPMGetPackage(${name})${postInclude}`,
     );
   } else if (config.dependencyType === "fetchContent") {
+    const lowercaseName = name.toLowerCase();
+    const exportSourceDir =
+      name === lowercaseName
+        ? ""
+        : `\nset(${name}_SOURCE_DIR \${${lowercaseName}_SOURCE_DIR})`;
     setVar(
       targetFile,
       placeholderVar,
-      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n)\n${preInclude}FetchContent_${downloadOnly ? "Populate" : "MakeAvailable"}(${name})${postInclude}`,
+      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n${downloadOnly ? "    SOURCE_SUBDIR download-only\n" : ""})\n${preInclude}FetchContent_MakeAvailable(${name})${exportSourceDir}${postInclude}`,
     );
   } else if (config.dependencyType === "submodule") {
     config.submodulesDir = path.join(config.projectDir, "submodules");

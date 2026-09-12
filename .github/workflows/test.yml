@@ -58,6 +58,12 @@ jobs:
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
 
+      - name: Install pluginval
+        run: |
+          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
+          unzip pluginval
+          echo "$PWD/pluginval.app/Contents/MacOS" >> "$GITHUB_PATH"
+
       - name: Check clang-tidy and cppcheck are available
         run: |
           clang-tidy --version
