@@ -133,6 +133,10 @@ export async function addJUCE(config) {
 }
 
 export async function addPluginval(config) {
+  if (!config.pluginFormats.includes("VST3")) {
+    return;
+  }
+
   const gitTag = await fetchLatestGitHubTag("Tracktion/pluginval", "Pluginval");
   await addDependency(
     config,

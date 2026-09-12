@@ -161,34 +161,60 @@ export async function populatePluginSpecificCMakeTemplates(config) {
   fs.mkdirSync(path.join(config.projectSourceDir, "audio"));
 
   if (config.dspAPI === "basic") {
-    fs.copyFileSync(
-      path.join(templatesDir, "plugin-main-audio-processor-basic.h"),
-      path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
-    );
+    if (isSynth) {
+      fs.copyFileSync(
+        path.join(templatesDir, "synth-main-audio-processor-basic.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "mainAudioProcessor->processBlock(audioBuffer, midiBuffer);",
+      );
+    } else {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-basic.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+      );
+    }
+
     setVar(
       path.join(config.projectSourceDir, "Processor.h"),
       "PREPARE_TO_PLAY_IMPL",
       "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  expectedBlockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
     );
-    setVar(
-      path.join(config.projectSourceDir, "Processor.h"),
-      "PROCESS_BLOCK_IMPL",
-      "mainAudioProcessor->processBlock(buffer);",
-    );
   } else if (config.dspAPI === "juce_dsp") {
-    fs.copyFileSync(
-      path.join(templatesDir, "plugin-main-audio-processor-juce_dsp.h"),
-      path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
-    );
+    if (isSynth) {
+      fs.copyFileSync(
+        path.join(templatesDir, "synth-main-audio-processor-juce_dsp.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "mainAudioProcessor->processBlock(audioBuffer, midiBuffer);",
+      );
+    } else {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-juce_dsp.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "juce::ignoreUnused(midiBuffer);\njuce::dsp::AudioBlock<float> block{ audioBuffer };\n        const juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
+      );
+    }
+
     setVar(
       path.join(config.projectSourceDir, "Processor.h"),
       "PREPARE_TO_PLAY_IMPL",
       "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(expectedBlockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
-    );
-    setVar(
-      path.join(config.projectSourceDir, "Processor.h"),
-      "PROCESS_BLOCK_IMPL",
-      "juce::dsp::AudioBlock<float> block{ buffer };\n        const juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
     );
   }
 
@@ -206,7 +232,11 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       "CreatePluginFilter.cpp",
     ),
   );
-  setVar(config.projectCMakeLists, "LINK_LIBRARIES", "juce::juce_audio_utils");
+  setVar(
+    config.projectCMakeLists,
+    "LINK_LIBRARIES",
+    `juce::juce_audio_utils${config.dspAPI === "juce_dsp" ? "\njuce::juce_dsp" : ""}`,
+  );
 
   if (config.guiAPI === "component") {
     fs.copyFileSync(

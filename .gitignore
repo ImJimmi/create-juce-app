@@ -2,6 +2,7 @@
 .env
 .vscode/
 CLAUDE.md
+config.json
 configs/
 my-juce-project/
 node_modules/

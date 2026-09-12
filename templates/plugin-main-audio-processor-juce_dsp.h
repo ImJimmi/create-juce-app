@@ -10,30 +10,29 @@ class MainAudioProcessor
 public:
     MainAudioProcessor(const juce::dsp::ProcessSpec& processSpec,
                        juce::AudioProcessorValueTreeState& processorState)
-        : spec{ processSpec }
-        , apvts{ processorState }
+        : apvts{ processorState }
         , outputGain{ OutputGainParameter::getFrom(apvts) }
         , bypass{ BypassParameter::getFrom(apvts) }
+        , gain{ dspChain.get<0>() }
     {
-        dspChain.prepare(spec);
-        dspChain.get<0>().setRampDurationSeconds(0.05);
+        dspChain.prepare(processSpec);
+        gain.setRampDurationSeconds(0.05);
     }
 
     template <typename ProcessContext>
     void process(const ProcessContext& context)
     {
-        dspChain.get<0>().setGainDecibels(outputGain);
+        gain.setGainDecibels(outputGain);
 
         if (!bypass)
             dspChain.process(context);
     }
 
 private:
-    const juce::dsp::ProcessSpec spec;
-
     juce::AudioProcessorValueTreeState& apvts;
     juce::AudioParameterFloat& outputGain;
     juce::AudioParameterBool& bypass;
 
     juce::dsp::ProcessorChain<juce::dsp::Gain<float>> dspChain;
+    juce::dsp::Gain<float>& gain;
 };

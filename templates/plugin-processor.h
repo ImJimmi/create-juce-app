@@ -35,7 +35,7 @@ public:
         VAR_PREPARE_TO_PLAY_IMPL
     }
 
-    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override
+    void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer) override
     {
         const juce::ScopedNoDenormals noDenormals;
 
