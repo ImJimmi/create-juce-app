@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { addPluginval, addGamma, addTheSTK } from "./dependencies.js";
-import { setVar, templatesDir } from "./utils.js";
+import { clearUnsetVars, setVar, templatesDir } from "./utils.js";
 
 const pluginEffectCategoriesMap = {
   dynamics: { vst3: "Dynamics", vst2: "kPlugCategEffect", aax: "Dynamics" },
@@ -160,6 +160,29 @@ export async function populatePluginSpecificCMakeTemplates(config) {
 
   fs.mkdirSync(path.join(config.projectSourceDir, "audio"));
 
+  if (isSynth && config.guiAPI !== "webview") {
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "MIDI_KEYBOARD_STATE",
+      "juce::MidiKeyboardState midiKeyboardState;",
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "RESET_MIDI_KEYBOARD_STATE",
+      "midiKeyboardState.reset();",
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "PROCESS_MIDI_KEYBOARD_STATE",
+      "midiKeyboardState.processNextMidiBuffer(midiBuffer, 0, audioBuffer.getNumSamples(), true);",
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "EDITOR_ARG_3",
+      "midiKeyboardState,",
+    );
+  }
+
   if (config.dspAPI === "basic") {
     if (isSynth) {
       fs.copyFileSync(
@@ -299,10 +322,17 @@ export async function populatePluginSpecificCMakeTemplates(config) {
   );
 
   if (config.guiAPI === "component") {
-    fs.copyFileSync(
-      path.join(templatesDir, "plugin-editor-JUCE.h"),
-      path.join(config.projectSourceDir, "editor", "Editor.h"),
-    );
+    if (isSynth) {
+      fs.copyFileSync(
+        path.join(templatesDir, "synth-editor-JUCE.h"),
+        path.join(config.projectSourceDir, "editor", "Editor.h"),
+      );
+    } else {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-editor-JUCE.h"),
+        path.join(config.projectSourceDir, "editor", "Editor.h"),
+      );
+    }
     setVar(
       path.join(config.projectSourceDir, "editor", "Editor.h"),
       "PROJECT_ID",
@@ -350,6 +380,8 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       `include(WebFrontend)\nadd_web_frontend(${config.projectID})\n`,
     );
   }
+
+  clearUnsetVars(path.join(config.projectSourceDir, "Processor.h"));
 
   await addPluginval(config);
 }

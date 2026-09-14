@@ -33,6 +33,8 @@ public:
     void prepareToPlay(double sampleRate, int expectedBlockSize) override
     {
         VAR_PREPARE_TO_PLAY_IMPL
+
+        VAR_RESET_MIDI_KEYBOARD_STATE
     }
 
     void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer) override
@@ -44,6 +46,8 @@ public:
             jassertfalse;
             return;
         }
+
+        VAR_PROCESS_MIDI_KEYBOARD_STATE
 
         VAR_PROCESS_BLOCK_IMPL
     }
@@ -134,7 +138,12 @@ protected:
 private:
     juce::AudioProcessorEditor* createEditor() override
     {
-        return new Editor{ *this, apvts }; // NOLINT
+        // NOLINTNEXTLINE
+        return new Editor{
+            *this,
+            apvts,
+            VAR_EDITOR_ARG_3
+        };
     }
 
     juce::UndoManager undoManager;
@@ -142,4 +151,6 @@ private:
     juce::AudioParameterBool& bypass;
 
     std::unique_ptr<MainAudioProcessor> mainAudioProcessor;
+
+    VAR_MIDI_KEYBOARD_STATE
 };
