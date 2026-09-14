@@ -28,6 +28,7 @@ const dspAPIs = [
   { dspAPI: "basic" },
   { dspAPI: "juce_dsp" },
   { dspAPI: "gamma" },
+  { dspAPI: "stk" },
 ];
 
 function cross(...axes) {

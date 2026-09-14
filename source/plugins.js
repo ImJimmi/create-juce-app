@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { addPluginval, addGamma } from "./dependencies.js";
+import { addPluginval, addGamma, addTheSTK } from "./dependencies.js";
 import { setVar, templatesDir } from "./utils.js";
 
 const pluginEffectCategoriesMap = {
@@ -232,6 +232,36 @@ export async function populatePluginSpecificCMakeTemplates(config) {
     } else {
       fs.copyFileSync(
         path.join(templatesDir, "plugin-main-audio-processor-gamma.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+      );
+    }
+
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "PREPARE_TO_PLAY_IMPL",
+      "mainAudioProcessor = std::make_unique<MainAudioProcessor>(sampleRate,\n                                                                  expectedBlockSize,\n                                                                  getMainBusNumOutputChannels(),\n                                                                  apvts);",
+    );
+  } else if (config.dspAPI === "stk") {
+    await addTheSTK(config);
+
+    if (isSynth) {
+      fs.copyFileSync(
+        path.join(templatesDir, "synth-main-audio-processor-stk.h"),
+        path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
+      );
+      setVar(
+        path.join(config.projectSourceDir, "Processor.h"),
+        "PROCESS_BLOCK_IMPL",
+        "mainAudioProcessor->processBlock(audioBuffer, midiBuffer);",
+      );
+    } else {
+      fs.copyFileSync(
+        path.join(templatesDir, "plugin-main-audio-processor-stk.h"),
         path.join(config.projectSourceDir, "audio", "MainAudioProcessor.h"),
       );
       setVar(

@@ -51,14 +51,28 @@ async function addDependency(
   preInclude = "",
   postInclude = "",
   downloadOnly = false,
+  configOptions = {},
 ) {
   if (preInclude !== "") preInclude = `${preInclude}\n`;
   if (postInclude !== "") postInclude = `\n${postInclude}`;
 
+  const options =
+    Object.keys(configOptions).length > 0
+      ? "    OPTIONS" +
+        Object.keys(configOptions)
+          .map((key) => `\n        "${key} ${configOptions[key]}"`)
+          .join("") +
+        "\n"
+      : "";
+
+  const cacheOptions = Object.keys(configOptions)
+    .map((key) => `set(${key} ${configOptions[key]} CACHE INTERNAL "")\n`)
+    .join("");
+
   if (config.dependencyType === "cpm") {
     appendToCpmPackageLock(
       config,
-      `CPMDeclarePackage(${name}\n    GITHUB_REPOSITORY ${owner}/${name}\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n${downloadOnly ? "    DOWNLOAD_ONLY YES\n" : ""})`,
+      `CPMDeclarePackage(${name}\n    GITHUB_REPOSITORY ${owner}/${name}\n    GIT_TAG ${gitTag}\n    SYSTEM YES\n    EXCLUDE_FROM_ALL YES\n${downloadOnly ? "    DOWNLOAD_ONLY YES\n" : ""}${options})`,
     );
     setVar(
       targetFile,
@@ -74,7 +88,7 @@ async function addDependency(
     setVar(
       targetFile,
       placeholderVar,
-      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n${downloadOnly ? "    SOURCE_SUBDIR download-only\n" : ""})\n${preInclude}FetchContent_MakeAvailable(${name})${exportSourceDir}${postInclude}`,
+      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n${downloadOnly ? "    SOURCE_SUBDIR download-only\n" : ""})\n${cacheOptions}${preInclude}FetchContent_MakeAvailable(${name})${exportSourceDir}${postInclude}`,
     );
   } else if (config.dependencyType === "submodule") {
     config.submodulesDir = path.join(config.projectDir, "submodules");
@@ -100,7 +114,7 @@ async function addDependency(
     setVar(
       targetFile,
       placeholderVar,
-      `set(${name}_SOURCE_DIR \${PROJECT_SOURCE_DIR}/submodules/${name})\n${preInclude}${addSubdirectory}${postInclude}`,
+      `set(${name}_SOURCE_DIR \${PROJECT_SOURCE_DIR}/submodules/${name})\n${cacheOptions}${preInclude}${addSubdirectory}${postInclude}`,
     );
   }
 }
@@ -234,4 +248,25 @@ export async function addGamma(config) {
 
   setVar(config.projectCMakeLists, "ADD_GAMMA", "include(Gamma)");
   setVar(config.projectCMakeLists, "LINK_GAMMA", "Gamma");
+}
+
+export async function addTheSTK(config) {
+  fs.copyFileSync(
+    path.join(templatesDir, "STK.cmake"),
+    path.join(config.projectCmakeDir, "STK.cmake"),
+  );
+  await addDependency(
+    config,
+    "stk",
+    "thestk",
+    "5.0.1",
+    "ADD_THE_STK",
+    path.join(config.projectCmakeDir, "STK.cmake"),
+    "",
+    "",
+    true,
+  );
+
+  setVar(config.projectCMakeLists, "ADD_THE_STK", "include(STK)");
+  setVar(config.projectCMakeLists, "LINK_THE_STK", "stk");
 }

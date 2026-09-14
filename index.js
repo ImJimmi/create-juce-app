@@ -420,6 +420,7 @@ async function main() {
             { title: "Basic JUCE audio API", value: "basic" },
             { title: "juce_dsp module", value: "juce_dsp" },
             { title: "Gamma", value: "gamma" },
+            { title: "The STK", value: "stk" },
           ],
         });
       }
