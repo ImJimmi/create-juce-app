@@ -109,6 +109,26 @@ export function addNonTemplatedProjectFiles(config) {
   );
 }
 
+export function addLicense(config) {
+  if (config.license === "none") return;
+
+  const license = path.join(config.projectDir, "LICENSE");
+  fs.copyFileSync(
+    path.join(templatesDir, "licenses", `${config.license}.txt`),
+    license,
+  );
+
+  const content = fs.readFileSync(license, { encoding: "utf8" });
+  fs.writeFileSync(
+    license,
+    content.replace(
+      "<year> <copyright holders>",
+      `${new Date().getFullYear()} ${config.companyName}`,
+    ),
+    { encoding: "utf8" },
+  );
+}
+
 export function addREADME(config) {
   const README = path.join(config.projectDir, "README.md");
   fs.copyFileSync(path.join(templatesDir, "README.md"), README);

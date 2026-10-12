@@ -79,6 +79,7 @@ function configFor(options) {
     companyName: "Create JUCE App CI",
     projectID: nameFor(options),
     juceVersion: "develop",
+    license: "MIT",
     ...options,
     ...(options.projectType === "plugin" && {
       pluginCode: "Cjap",

@@ -14,7 +14,11 @@ import {
 import { populateDesktopSpecificCMakeTemplates } from "./source/desktop.js";
 import { makeInitialCommit } from "./source/GitHub.js";
 import { populatePluginSpecificCMakeTemplates } from "./source/plugins.js";
-import { addNonTemplatedProjectFiles, addREADME } from "./source/projects.js";
+import {
+  addLicense,
+  addNonTemplatedProjectFiles,
+  addREADME,
+} from "./source/projects.js";
 import { addUnitTestFramework } from "./source/unit-tests.js";
 import {
   clearUnsetVars,
@@ -452,6 +456,21 @@ async function main() {
     ],
   });
   await addUnitTestFramework(config);
+
+  await promptUser({
+    type: "select",
+    name: "license",
+    message: "License:",
+    choices: [
+      { title: "AGPLv3", value: "AGPL3" },
+      { title: "Apache 2.0", value: "Apache2" },
+      { title: "GPLv3", value: "GPL3" },
+      { title: "MIT", value: "MIT" },
+      { title: "The Unlicense", value: "Unlicense" },
+      { title: "No license", value: "none" },
+    ],
+  });
+  addLicense(config);
 
   addREADME(config);
   clearUnsetVars(config.projectCMakeLists);
