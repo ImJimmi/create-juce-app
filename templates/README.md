@@ -35,6 +35,24 @@ cmake --build build --config <Config>
 
 Replace `<Config>` with the build configuration, e.g. `Debug`, or `Release`.
 
+### CMake Presets
+
+Alternatively, [`CMakePresets.json`](CMakePresets.json) provides presets for macOS, Windows, and Linux, including presets for IDE generators and each of the sanitizers above. List them all with
+
+```bash
+cmake --list-presets=all
+```
+
+To configure, build, and test in a single step, run
+
+```bash
+cmake --workflow --preset <Workflow>
+```
+
+Replace `<Workflow>` with one of `macos-debug`, `macos-release`, `windows-debug`, `windows-release`, `linux-debug`, or `linux-release`. The release workflows also package an installer, with macOS producing a universal binary. Each preset builds into its own `build/<Preset>` directory.
+
+_The Ninja-based `windows` presets must be run from a Visual Studio Developer Command Prompt. Use `CMakeUserPresets.json` for any personal presets - it's ignored by git._
+
 ## Testing
 
 All tests are registered with CTest. To run the full suite, run

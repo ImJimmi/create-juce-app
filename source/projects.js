@@ -16,7 +16,7 @@ export function addNonTemplatedProjectFiles(config) {
   // .gitignore
   fs.writeFileSync(
     path.join(config.projectDir, ".gitignore"),
-    "build/\nCPM_modules/",
+    "build/\nCPM_modules/\nCMakeUserPresets.json",
   );
 
   // Main CMakeLists.txt
@@ -47,6 +47,10 @@ export function addNonTemplatedProjectFiles(config) {
   fs.copyFileSync(
     path.join(templatesDir, "CommonConfig.cmake"),
     path.join(config.projectCmakeDir, "CommonConfig.cmake"),
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "CMakePresets.json"),
+    path.join(config.projectDir, "CMakePresets.json"),
   );
 
   // Assets

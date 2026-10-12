@@ -1,0 +1,489 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "address-sanitizer",
+            "hidden": true,
+            "cacheVariables": {
+                "ENABLE_ADDRESS_SANITIZER": "ON"
+            }
+        },
+        {
+            "name": "thread-sanitizer",
+            "hidden": true,
+            "cacheVariables": {
+                "ENABLE_THREAD_SANITIZER": "ON"
+            }
+        },
+        {
+            "name": "realtime-sanitizer",
+            "hidden": true,
+            "cacheVariables": {
+                "ENABLE_REALTIME_SANITIZER": "ON"
+            }
+        },
+        {
+            "name": "macos-base",
+            "hidden": true,
+            "inherits": "default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"
+            }
+        },
+        {
+            "name": "macos",
+            "displayName": "macOS (Ninja)",
+            "inherits": "macos-base"
+        },
+        {
+            "name": "macos-universal",
+            "displayName": "macOS Universal Binary (Ninja)",
+            "inherits": "macos-base",
+            "cacheVariables": {
+                "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64"
+            }
+        },
+        {
+            "name": "macos-xcode",
+            "displayName": "macOS (Xcode)",
+            "inherits": "macos-base",
+            "generator": "Xcode"
+        },
+        {
+            "name": "macos-asan",
+            "displayName": "macOS Address Sanitizer (Ninja)",
+            "inherits": ["macos-base", "address-sanitizer"]
+        },
+        {
+            "name": "macos-tsan",
+            "displayName": "macOS Thread Sanitizer (Ninja)",
+            "inherits": ["macos-base", "thread-sanitizer"]
+        },
+        {
+            "name": "macos-rtsan",
+            "displayName": "macOS Realtime Sanitizer (Ninja)",
+            "inherits": ["macos-base", "realtime-sanitizer"]
+        },
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "inherits": "default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": ["Windows"]
+                }
+            }
+        },
+        {
+            "name": "windows",
+            "displayName": "Windows (Ninja + MSVC)",
+            "inherits": "windows-base",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "windows-vs",
+            "displayName": "Windows (Visual Studio)",
+            "inherits": "windows-base",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64"
+        },
+        {
+            "name": "linux-base",
+            "hidden": true,
+            "inherits": "default",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "linux",
+            "displayName": "Linux (Ninja)",
+            "inherits": "linux-base"
+        },
+        {
+            "name": "linux-asan",
+            "displayName": "Linux Address Sanitizer (Ninja)",
+            "inherits": ["linux-base", "address-sanitizer"]
+        },
+        {
+            "name": "linux-tsan",
+            "displayName": "Linux Thread Sanitizer (Ninja)",
+            "inherits": ["linux-base", "thread-sanitizer"]
+        },
+        {
+            "name": "linux-rtsan",
+            "displayName": "Linux Realtime Sanitizer (Ninja)",
+            "inherits": ["linux-base", "realtime-sanitizer"]
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "macos-base",
+            "hidden": true,
+            "configurePreset": "macos",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "macos-debug",
+            "inherits": "macos-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-release",
+            "inherits": "macos-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-universal-release",
+            "inherits": "macos-base",
+            "configurePreset": "macos-universal",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-xcode-debug",
+            "inherits": "macos-base",
+            "configurePreset": "macos-xcode",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-xcode-release",
+            "inherits": "macos-base",
+            "configurePreset": "macos-xcode",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-asan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-asan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-tsan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-tsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-rtsan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-rtsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "configurePreset": "windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "windows-debug",
+            "inherits": "windows-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-release",
+            "inherits": "windows-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-vs-debug",
+            "inherits": "windows-base",
+            "configurePreset": "windows-vs",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-vs-release",
+            "inherits": "windows-base",
+            "configurePreset": "windows-vs",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-base",
+            "hidden": true,
+            "configurePreset": "linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "linux-debug",
+            "inherits": "linux-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-release",
+            "inherits": "linux-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-asan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-asan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-tsan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-tsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-rtsan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-rtsan",
+            "configuration": "Debug"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "macos-base",
+            "hidden": true,
+            "inherits": "default",
+            "configurePreset": "macos",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "macos-debug",
+            "inherits": "macos-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-release",
+            "inherits": "macos-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-universal-release",
+            "inherits": "macos-base",
+            "configurePreset": "macos-universal",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-asan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-asan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-tsan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-tsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-rtsan",
+            "inherits": "macos-base",
+            "configurePreset": "macos-rtsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "inherits": "default",
+            "configurePreset": "windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "windows-debug",
+            "inherits": "windows-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-release",
+            "inherits": "windows-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-base",
+            "hidden": true,
+            "inherits": "default",
+            "configurePreset": "linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "linux-debug",
+            "inherits": "linux-base",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-release",
+            "inherits": "linux-base",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-asan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-asan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-tsan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-tsan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-rtsan",
+            "inherits": "linux-base",
+            "configurePreset": "linux-rtsan",
+            "configuration": "Debug"
+        }
+    ],
+    "packagePresets": [
+        {
+            "name": "macos",
+            "configurePreset": "macos-universal",
+            "configurations": ["Release"],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "windows",
+            "configurePreset": "windows",
+            "configurations": ["Release"],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "linux",
+            "configurePreset": "linux",
+            "configurations": ["Release"],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "macos-debug",
+            "displayName": "macOS Debug",
+            "steps": [
+                { "type": "configure", "name": "macos" },
+                { "type": "build", "name": "macos-debug" },
+                { "type": "test", "name": "macos-debug" }
+            ]
+        },
+        {
+            "name": "macos-release",
+            "displayName": "macOS Release",
+            "steps": [
+                { "type": "configure", "name": "macos-universal" },
+                { "type": "build", "name": "macos-universal-release" },
+                { "type": "test", "name": "macos-universal-release" },
+                { "type": "package", "name": "macos" }
+            ]
+        },
+        {
+            "name": "windows-debug",
+            "displayName": "Windows Debug",
+            "steps": [
+                { "type": "configure", "name": "windows" },
+                { "type": "build", "name": "windows-debug" },
+                { "type": "test", "name": "windows-debug" }
+            ]
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Windows Release",
+            "steps": [
+                { "type": "configure", "name": "windows" },
+                { "type": "build", "name": "windows-release" },
+                { "type": "test", "name": "windows-release" },
+                { "type": "package", "name": "windows" }
+            ]
+        },
+        {
+            "name": "linux-debug",
+            "displayName": "Linux Debug",
+            "steps": [
+                { "type": "configure", "name": "linux" },
+                { "type": "build", "name": "linux-debug" },
+                { "type": "test", "name": "linux-debug" }
+            ]
+        },
+        {
+            "name": "linux-release",
+            "displayName": "Linux Release",
+            "steps": [
+                { "type": "configure", "name": "linux" },
+                { "type": "build", "name": "linux-release" },
+                { "type": "test", "name": "linux-release" },
+                { "type": "package", "name": "linux" }
+            ]
+        }
+    ]
+}
