@@ -10,11 +10,10 @@ runs:
       with:
         node-version: 24
 
-    - name: Install Ninja
-      uses: seanmiddleditch/gha-setup-ninja@v4
-
     - name: Install sccache
-      uses: mozilla-actions/sccache-action@v0.0.9
+      uses: mozilla-actions/sccache-action@v0.0.11
+      with:
+        version: v0.18.0
 
     - name: Set up MSVC
       if: runner.os == 'Windows'
@@ -112,7 +111,7 @@ runs:
         chmod +x "$RUNNER_TEMP/pluginval/pluginval"
         echo "$RUNNER_TEMP/pluginval" >> "$GITHUB_PATH"
 
-    - name: Install Pluginval (Linux)
+    - name: Install Pluginval (Windows)
       if: runner.os == 'Windows'
       shell: bash
       run: choco install pluginval

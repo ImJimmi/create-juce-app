@@ -143,7 +143,7 @@ async function promptForDependencyType() {
     setVar(
       config.projectCMakeLists,
       "INIT_PACKAGE_MANAGER",
-      'if(NOT CPM_SOURCE_CACHE)\n    set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")\nendif()\n\ninclude(CPM)\nCPMUsePackageLock(cpm-package-lock.cmake)',
+      'if(NOT CPM_SOURCE_CACHE)\n    if(CMAKE_HOST_WIN32)\n        file(TO_CMAKE_PATH "$ENV{USERPROFILE}/.cache/CPM" CPM_SOURCE_CACHE)\n    else()\n        set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")\n    endif()\nendif()\n\ninclude(CPM)\nCPMUsePackageLock(cpm-package-lock.cmake)',
     );
   } else if (config.dependencyType === "fetchContent") {
     setVar(
@@ -212,7 +212,7 @@ async function populateCMakeTemplates() {
 
 function runCMake() {
   child_process.execSync(
-    `cmake -B build -G "Ninja Multi-Config" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM`,
+    `cmake -B build -G "Ninja Multi-Config" -DCPM_SOURCE_CACHE=${os.homedir()}/.cache/CPM -DCMAKE_POLICY_DEFAULT_CMP0141=NEW`,
     {
       cwd: config.projectDir,
       encoding: "utf-8",

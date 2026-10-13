@@ -3,6 +3,8 @@ name: Build
 on:
   pull_request:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -34,16 +36,13 @@ jobs:
             package-preset: windows
 
     env:
-      SCCACHE_CACHE_SIZE: 2G
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_MULTIARCH: 1
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
-      - name: Set SCCACHE_DIR
-        shell: bash
-        run: echo "SCCACHE_DIR=${RUNNER_TEMP}/sccache" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
@@ -60,20 +59,13 @@ jobs:
       - name: Cache FetchContent dependencies
         uses: actions/cache@v6
         with:
-          path: build/${{ matrix.configure-preset }}/_deps
+          path: |
+            build/${{ matrix.configure-preset }}/_deps
+            !build/${{ matrix.configure-preset }}/_deps/*-build
           key: fetchcontent-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt') }}
           restore-keys: |
             fetchcontent-${{ runner.os }}-${{ github.ref }}
             fetchcontent-${{ runner.os }}
-
-      - name: Cache sccache
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-${{ runner.os }}-${{ github.ref }}-${{ github.run_id }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ github.ref }}
-            sccache-${{ runner.os }}
 
       - name: Import signing certificates
         if: startsWith(github.ref, 'refs/tags/')
@@ -101,10 +93,6 @@ jobs:
       - name: CTest
         run: ctest --preset ${{ matrix.build-preset }}
 
-      - name: Show sccache stats
-        if: always()
-        run: sccache --show-stats
-
       - name: Code-sign built plugin/app bundles
         if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && env.MACOS_CODESIGN_IDENTITY != ''
         env:
@@ -115,6 +103,21 @@ jobs:
               echo "Signing $bundle"
               codesign --force --deep --options runtime --timestamp --sign "$MACOS_CODESIGN_IDENTITY" "$bundle"
             done
+
+      - name: Code-sign built plugin/app binaries
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/') && env.WINDOWS_CERTIFICATE_THUMBPRINT != ''
+        shell: pwsh
+        run: |
+          $binaries = Get-ChildItem -Path "build/${{ matrix.configure-preset }}" -Recurse -File -Include *.exe, *.dll, *.vst3 |
+            Where-Object { $_.FullName -match "_artefacts\\Release\\" }
+
+          foreach ($binary in $binaries) {
+            Write-Host "Signing $($binary.FullName)"
+            signtool sign /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $binary.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to sign $($binary.FullName)"
+            }
+          }
 
       - name: CPack
         if: startsWith(github.ref, 'refs/tags/')
@@ -147,12 +150,7 @@ jobs:
       - name: Code-sign installer
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/') && env.WINDOWS_CERTIFICATE_THUMBPRINT != ''
         shell: pwsh
-        run: |
-          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match "\\x64\\" } |
-            Select-Object -First 1 -ExpandProperty FullName
-
-          & $signtool sign /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "${{ steps.installer.outputs.path }}"
+        run: signtool sign /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "${{ steps.installer.outputs.path }}"
 
       - name: Notarize installer
         if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && env.APPLE_ID != ''
