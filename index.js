@@ -15,6 +15,7 @@ import { populateDesktopSpecificCMakeTemplates } from "./source/desktop.js";
 import { makeInitialCommit } from "./source/GitHub.js";
 import { populatePluginSpecificCMakeTemplates } from "./source/plugins.js";
 import {
+  addJustfile,
   addLicense,
   addNonTemplatedProjectFiles,
   addREADME,
@@ -472,6 +473,7 @@ async function main() {
   });
   addLicense(config);
 
+  addJustfile(config);
   addREADME(config);
   clearUnsetVars(config.projectCMakeLists);
   makeInitialCommit(config);

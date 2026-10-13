@@ -133,6 +133,68 @@ export function addLicense(config) {
   );
 }
 
+function getAudioUnitType(config) {
+  if (config.pluginType === "midi") return "aumi";
+  if (config.pluginType === "synth") return "aumu";
+  if (config.midiIO.includes("needsMidiInput")) return "aumf";
+
+  return "aufx";
+}
+
+function getJustExecutable(config) {
+  const directory = config.projectType === "plugin" ? '"Standalone" / ' : "";
+  const macOSExecutable =
+    config.projectType === "console"
+      ? "product"
+      : 'product + ".app/Contents/MacOS/" + product';
+
+  return `if os() == "macos" { ${directory}${macOSExecutable} } else if os() == "windows" { ${directory}product + ".exe" } else { ${directory}product }`;
+}
+
+export function addJustfile(config) {
+  const justfile = path.join(config.projectDir, "justfile");
+  const isPlugin = config.projectType === "plugin";
+  const hasRun = !isPlugin || config.pluginFormats.includes("Standalone");
+  const hasPluginval = isPlugin && config.pluginFormats.includes("VST3");
+  const hasAuval = isPlugin && config.pluginFormats.includes("AU");
+
+  const templates = [
+    "justfile",
+    hasRun && "justfile-run",
+    hasPluginval && "justfile-pluginval",
+    hasAuval && "justfile-auval",
+  ].filter(Boolean);
+
+  fs.writeFileSync(
+    justfile,
+    templates
+      .map((template) =>
+        fs.readFileSync(path.join(templatesDir, template), {
+          encoding: "utf8",
+        }),
+      )
+      .join("\n"),
+    { encoding: "utf8" },
+  );
+
+  setVar(justfile, "PROJECT_ID", config.projectID);
+  setVar(justfile, "PROJECT_NAME", config.projectName);
+
+  if (hasRun) {
+    setVar(justfile, "EXECUTABLE", getJustExecutable(config));
+  }
+
+  if (hasAuval) {
+    setVar(justfile, "AU_TYPE", getAudioUnitType(config));
+    setVar(justfile, "PLUGIN_CODE", config.pluginCode);
+    setVar(
+      justfile,
+      "PLUGIN_MANUFACTURER_CODE",
+      config.pluginManufacturerCode,
+    );
+  }
+}
+
 export function addREADME(config) {
   const README = path.join(config.projectDir, "README.md");
   fs.copyFileSync(path.join(templatesDir, "README.md"), README);

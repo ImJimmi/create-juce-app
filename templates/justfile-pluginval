@@ -1,0 +1,2 @@
+pluginval strictness="10" config="Debug":
+    pluginval --strictness-level {{ strictness }} --validate "{{ artefacts / config / "VST3" / product + ".vst3" }}"

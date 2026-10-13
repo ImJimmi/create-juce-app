@@ -1,0 +1,7 @@
+[macos]
+auval config="Debug":
+    mkdir -p ~/Library/Audio/Plug-Ins/Components
+    rm -rf ~/Library/Audio/Plug-Ins/Components/"{{ product }}.component"
+    cp -R "{{ artefacts / config / "AU" / product + ".component" }}" ~/Library/Audio/Plug-Ins/Components/
+    -killall -9 AudioComponentRegistrar
+    auval -v VAR_AU_TYPE "VAR_PLUGIN_CODE" "VAR_PLUGIN_MANUFACTURER_CODE"

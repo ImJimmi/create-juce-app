@@ -1,0 +1,61 @@
+set windows-shell := ["pwsh", "-NoLogo", "-NoProfile", "-Command"]
+
+version := replace_regex(read(justfile_directory() / "CMakeLists.txt"), '(?s)^.*project\([^)]*VERSION ([0-9]+\.[0-9]+\.[0-9]+).*$', '${1}')
+preset := os()
+target := "VAR_PROJECT_ID"
+product := "VAR_PROJECT_NAME"
+artefacts := "build" / preset / target + "_artefacts"
+
+default:
+    @just --list
+
+version:
+    @echo "{{product}} v{{version}}"
+
+[unix]
+bump part="patch":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    IFS=. read -r major minor patch <<< "{{version}}"
+    case "{{part}}" in
+        major) major=$((major + 1)); minor=0; patch=0 ;;
+        minor) minor=$((minor + 1)); patch=0 ;;
+        patch) patch=$((patch + 1)) ;;
+        *) echo "Unknown version part '{{part}}', expected one of major, minor, or patch" >&2; exit 1 ;;
+    esac
+    sed -i.bak -E "s/^(project\(.* VERSION )[0-9]+\.[0-9]+\.[0-9]+/\1${major}.${minor}.${patch}/" CMakeLists.txt
+    rm CMakeLists.txt.bak
+    echo "Bumped version from {{version}} to ${major}.${minor}.${patch}"
+
+[windows]
+[script("pwsh", "-NoLogo", "-NoProfile")]
+[extension(".ps1")]
+bump part="patch":
+    $ErrorActionPreference = "Stop"
+    $major, $minor, $patch = "{{version}}".Split(".") | ForEach-Object { [int]$_ }
+    switch ("{{part}}") {
+        "major" { $major++; $minor = 0; $patch = 0 }
+        "minor" { $minor++; $patch = 0 }
+        "patch" { $patch++ }
+        default { throw "Unknown version part '{{part}}', expected one of major, minor, or patch" }
+    }
+    $newVersion = "$major.$minor.$patch"
+    (Get-Content CMakeLists.txt -Raw) -replace '(?m)^(project\(.* VERSION )\d+\.\d+\.\d+', "`${1}$newVersion" | Set-Content CMakeLists.txt -NoNewline
+    Write-Output "Bumped version from {{version}} to $newVersion"
+
+[unix]
+_tag:
+    @if git show-ref --quiet --verify "refs/tags/v{{version}}"; then echo "Tag v{{version}} already exists. Bump the version with: just bump" >&2; exit 1; fi
+    @git tag -a "v{{version}}" -m "Release {{product}} v{{version}}"
+
+[windows]
+_tag:
+    @if (git tag --list "v{{version}}") { throw "Tag v{{version}} already exists. Bump the version with: just bump" }
+    @git tag -a "v{{version}}" -m "Release {{product}} v{{version}}"
+
+tag: _tag
+    @echo "Tagged {{product}} v{{version}}. Push it with: git push origin v{{version}}"
+
+release: _tag
+    @git push origin "v{{version}}"
+    @echo "Released {{product}} v{{version}}"

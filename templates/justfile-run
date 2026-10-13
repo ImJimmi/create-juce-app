@@ -1,0 +1,9 @@
+executable := VAR_EXECUTABLE
+
+[unix]
+run config="Debug":
+    "{{ artefacts / config / executable }}"
+
+[windows]
+run config="Debug":
+    & "{{ artefacts / config / executable }}"
