@@ -239,7 +239,7 @@ export async function addGamma(config) {
     config,
     "Gamma",
     "LancePutnam",
-    "c883c71ac1f400e1dd3c1c8c966a7f945a17acd1",
+    "master",
     "ADD_GAMMA",
     path.join(config.projectCmakeDir, "Gamma.cmake"),
     "",
