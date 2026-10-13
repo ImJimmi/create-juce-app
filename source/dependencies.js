@@ -85,10 +85,11 @@ async function addDependency(
       name === lowercaseName
         ? ""
         : `\nset(${name}_SOURCE_DIR \${${lowercaseName}_SOURCE_DIR})`;
+    const isCommitHash = /^[0-9a-f]{40}$/i.test(gitTag);
     setVar(
       targetFile,
       placeholderVar,
-      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n    GIT_SHALLOW TRUE\n${downloadOnly ? "    SOURCE_SUBDIR download-only\n" : ""})\n${cacheOptions}${preInclude}FetchContent_MakeAvailable(${name})${exportSourceDir}${postInclude}`,
+      `FetchContent_Declare(${name}\n    GIT_REPOSITORY https://github.com/${owner}/${name}.git\n    GIT_TAG ${gitTag}\n${isCommitHash ? "" : "    GIT_SHALLOW TRUE\n"}${downloadOnly ? "    SOURCE_SUBDIR download-only\n" : ""})\n${cacheOptions}${preInclude}FetchContent_MakeAvailable(${name})${exportSourceDir}${postInclude}`,
     );
   } else if (config.dependencyType === "submodule") {
     config.submodulesDir = path.join(config.projectDir, "submodules");
