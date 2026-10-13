@@ -130,9 +130,11 @@ export async function collectJuceVersions() {
     )
   ).map((release) => ({ title: release.name, value: release.tag_name }));
 
-  releases = releases.filter(
-    (release) => Number.parseInt(release.value[0]) >= 8,
-  );
+  releases = releases
+    .filter((release) => Number.parseInt(release.value[0]) >= 8)
+    .sort((a, b) =>
+      b.value.localeCompare(a.value, undefined, { numeric: true }),
+    );
   releases[0].title = releases[0].title + " (recommended)";
   releases.splice(1, 0, { title: "Master branch", value: "master" });
   releases.splice(2, 0, { title: "Develop branch", value: "develop" });
