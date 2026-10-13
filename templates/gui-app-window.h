@@ -21,7 +21,7 @@ public:
         setResizable(true, true);
         setUsingNativeTitleBar(true);
 
-        if (!restoreWindowStateFromString(appState["window-state"].toString()))
+        if (!restoreWindowStateFromString(appState[windowStateID].toString()))
             centreWithSize(getWidth(), getHeight());
 
         setVisible(true);
@@ -57,9 +57,12 @@ private:
         if (!initialised)
             return;
 
-        appState.setProperty("window-state", getWindowStateAsString(), nullptr);
+        appState.setProperty(windowStateID, getWindowStateAsString(), nullptr);
     }
 
+    const juce::Identifier windowStateID{ "window-state" };
     juce::ValueTree appState;
     bool initialised = false;
+
+    JUCE_LEAK_DETECTOR(Window)
 };

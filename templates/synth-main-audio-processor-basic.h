@@ -5,6 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <numbers>
+#include <span>
 
 class MainAudioProcessor
 {
@@ -20,7 +21,7 @@ public:
         , outputGain{ OutputGainParameter::getFrom(apvts) }
         , bypass{ BypassParameter::getFrom(apvts) }
     {
-        for (auto i = 0; i < 8; i++)
+        for (auto i = 0; i < 8; ++i)
             synth.addVoice(new Voice{}); // NOLINT
 
         synth.addSound(new Sound()); // NOLINT
@@ -29,6 +30,8 @@ public:
 
     void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
     {
+        audioBuffer.clear();
+
         synth.renderNextBlock(audioBuffer, midiBuffer, 0, audioBuffer.getNumSamples());
 
         if (bypass)
@@ -95,7 +98,9 @@ private:
         {
         }
 
-        void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) override
+        void renderNextBlock(juce::AudioBuffer<float>& buffer,
+                             int startSample,
+                             int numSamples) override
         {
             if (juce::approximatelyEqual(deltaPhase, 0.0f))
                 return;
@@ -104,14 +109,14 @@ private:
             // gain to 1.0
             static constexpr auto unityGain = 1.0f;
             const auto& gain = tailOff > 0.0f ? tailOff : unityGain;
+            const std::span leftChannel{
+                buffer.getWritePointer(0, startSample),
+                static_cast<std::size_t>(numSamples),
+            };
 
-            for (auto i = startSample; i < numSamples + startSample; i++)
+            for (auto& sample : leftChannel)
             {
-                const auto sample = std::sin(phase) * level * gain;
-
-                for (auto channel = 0; channel < buffer.getNumChannels(); channel++)
-                    buffer.addSample(channel, i, sample);
-
+                sample += std::sin(phase) * level * gain;
                 phase += deltaPhase;
                 tailOff *= 0.99f;
 
@@ -122,9 +127,12 @@ private:
                     clearCurrentNote();
 
                     deltaPhase = 0.0f;
-                    return;
+                    break;
                 }
             }
+
+            for (auto channel = 1; channel < buffer.getNumChannels(); ++channel)
+                buffer.copyFrom(channel, startSample, std::data(leftChannel), numSamples);
         }
 
         using juce::SynthesiserVoice::renderNextBlock;

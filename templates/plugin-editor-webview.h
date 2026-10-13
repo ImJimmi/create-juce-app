@@ -43,4 +43,6 @@ public:
 
 private:
     SinglePageBrowserComponent webview;
+
+    JUCE_LEAK_DETECTOR(Editor)
 };

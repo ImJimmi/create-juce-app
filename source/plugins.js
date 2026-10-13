@@ -202,7 +202,7 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       setVar(
         path.join(config.projectSourceDir, "Processor.h"),
         "PROCESS_BLOCK_IMPL",
-        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+        "mainAudioProcessor->processBlock(audioBuffer);",
       );
     }
 
@@ -230,17 +230,17 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       setVar(
         path.join(config.projectSourceDir, "Processor.h"),
         "PROCESS_BLOCK_IMPL",
-        "juce::ignoreUnused(midiBuffer);\njuce::dsp::AudioBlock<float> block{ audioBuffer };\n        const juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
+        "juce::dsp::AudioBlock<float> block{ audioBuffer };\n        const juce::dsp::ProcessContextReplacing context{ block };\n        mainAudioProcessor->process(context);",
       );
     }
 
     setVar(
       path.join(config.projectSourceDir, "Processor.h"),
       "PREPARE_TO_PLAY_IMPL",
-      "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<juce::uint32>(expectedBlockSize),\n            static_cast<juce::uint32>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
+      "const juce::dsp::ProcessSpec spec{\n            sampleRate,\n            static_cast<std::uint32_t>(expectedBlockSize),\n            static_cast<std::uint32_t>(getMainBusNumOutputChannels()),\n        };\n        mainAudioProcessor = std::make_unique<MainAudioProcessor>(spec, apvts);",
     );
   } else if (config.dspAPI === "gamma") {
-    addGamma(config);
+    await addGamma(config);
 
     if (isSynth) {
       fs.copyFileSync(
@@ -260,7 +260,7 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       setVar(
         path.join(config.projectSourceDir, "Processor.h"),
         "PROCESS_BLOCK_IMPL",
-        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+        "mainAudioProcessor->processBlock(audioBuffer);",
       );
     }
 
@@ -290,7 +290,7 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       setVar(
         path.join(config.projectSourceDir, "Processor.h"),
         "PROCESS_BLOCK_IMPL",
-        "juce::ignoreUnused(midiBuffer);\nmainAudioProcessor->processBlock(audioBuffer);",
+        "mainAudioProcessor->processBlock(audioBuffer);",
       );
     }
 

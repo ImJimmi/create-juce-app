@@ -18,7 +18,7 @@ public:
         , apvts{
             *this,
             &undoManager,
-            "Parameters",
+            apvtsType,
             makeParameters(),
         }
         , bypass{ BypassParameter::getFrom(apvts) }
@@ -37,7 +37,8 @@ public:
         VAR_RESET_MIDI_KEYBOARD_STATE
     }
 
-    void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer) override
+    void processBlock(juce::AudioBuffer<float>& audioBuffer,
+                      [[maybe_unused]] juce::MidiBuffer& midiBuffer) override
     {
         const juce::ScopedNoDenormals noDenormals;
 
@@ -124,7 +125,17 @@ public:
 
     void setStateInformation(const void* data, int size) override
     {
-        apvts.replaceState(juce::ValueTree::readFromData(data, static_cast<std::size_t>(size)));
+        if (const auto newState = juce::ValueTree::readFromData(data, static_cast<std::size_t>(size));
+            newState.isValid() && newState.hasType(apvtsType))
+        {
+            apvts.replaceState(newState);
+        }
+        else
+        {
+            // The new state given to this processor is invalid, or has the
+            // incorrect type!
+            jassertfalse;
+        }
     }
 
 protected:
@@ -146,6 +157,7 @@ private:
         };
     }
 
+    const juce::Identifier apvtsType{ "Parameters" };
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioParameterBool& bypass;
@@ -153,4 +165,6 @@ private:
     std::unique_ptr<MainAudioProcessor> mainAudioProcessor;
 
     VAR_MIDI_KEYBOARD_STATE
+
+    JUCE_LEAK_DETECTOR(Processor)
 };

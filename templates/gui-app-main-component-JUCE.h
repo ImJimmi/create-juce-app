@@ -108,4 +108,6 @@ private:
     juce::Label counterLabel;
     juce::TextButton plusButton;
     juce::CachedValue<int> counter;
+
+    JUCE_LEAK_DETECTOR(MainComponent)
 };

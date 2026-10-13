@@ -34,4 +34,6 @@ public:
 private:
     [[maybe_unused]] juce::ValueTree appState;
     SinglePageBrowserComponent webview;
+
+    JUCE_LEAK_DETECTOR(MainComponent)
 };

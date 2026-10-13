@@ -39,8 +39,16 @@ export function addNonTemplatedProjectFiles(config) {
     path.join(config.projectCmakeDir, "ClangTidy.cmake"),
   );
   fs.copyFileSync(
+    path.join(templatesDir, "RunClangTidy.cmake"),
+    path.join(config.projectCmakeDir, "RunClangTidy.cmake"),
+  );
+  fs.copyFileSync(
     path.join(templatesDir, "CppCheck.cmake"),
     path.join(config.projectCmakeDir, "CppCheck.cmake"),
+  );
+  fs.copyFileSync(
+    path.join(templatesDir, "RunCppCheck.cmake"),
+    path.join(config.projectCmakeDir, "RunCppCheck.cmake"),
   );
 
   // General CMake

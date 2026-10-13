@@ -1,6 +1,15 @@
 #include <juce_core/juce_core.h>
 
-#include <iostream>
+#include <print>
+
+class Logger final : public juce::Logger
+{
+protected:
+    void logMessage(const juce::String& message) override
+    {
+        std::println("{}", message.toStdString());
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -15,7 +24,7 @@ int main(int argc, char* argv[])
         "Prints a greeting",
         "Prints a 'Hello, World!' message",
         [](const auto&) {
-            std::cout << "Hello, World!\n";
+            juce::Logger::writeToLog("Hello, World!");
         },
     });
 

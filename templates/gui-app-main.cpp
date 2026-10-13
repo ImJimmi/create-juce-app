@@ -86,11 +86,15 @@ private:
             }
         }
 
+        static const juce::Identifier appStateType{ "AppState" };
+        static const juce::Identifier appVersionID{ "app-version" };
+        static const juce::Identifier counterID{ "counter" };
+
         return {
-            "AppState",
+            appStateType,
             {
-                { "app-version", PROJECT_VERSION },
-                { "counter", 0 },
+                { appVersionID, PROJECT_VERSION },
+                { counterID, 0 },
             },
         };
     }

@@ -7,6 +7,8 @@
 #include <Stk.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <span>
+
 class MainAudioProcessor
 {
 public:
@@ -32,6 +34,8 @@ public:
 
     void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
     {
+        audioBuffer.clear();
+
         synth.renderNextBlock(audioBuffer, midiBuffer, 0, audioBuffer.getNumSamples());
 
         if (bypass)
@@ -105,20 +109,25 @@ private:
             if (!isVoiceActive())
                 return;
 
-            for (auto i = startSample; i < numSamples + startSample; i++)
-            {
-                const auto sample = static_cast<float>(oscillator.tick() * envelope.tick()) * level;
+            const std::span leftChannel{
+                buffer.getWritePointer(0, startSample),
+                static_cast<std::size_t>(numSamples),
+            };
 
-                for (auto channel = 0; channel < buffer.getNumChannels(); channel++)
-                    buffer.addSample(channel, i, sample);
+            for (auto& sample : leftChannel)
+            {
+                sample += static_cast<float>(oscillator.tick() * envelope.tick()) * level;
 
                 if (envelope.getState() == stk::ADSR::IDLE)
                 {
                     clearCurrentNote();
                     lastNote = -1;
-                    return;
+                    break;
                 }
             }
+
+            for (auto channel = 1; channel < buffer.getNumChannels(); ++channel)
+                buffer.copyFrom(channel, startSample, std::data(leftChannel), numSamples);
         }
 
         using juce::SynthesiserVoice::renderNextBlock;

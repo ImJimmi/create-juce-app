@@ -35,7 +35,7 @@ public:
         if (bypass)
             return;
 
-        for (auto channelIndex = 0; channelIndex < buffer.getNumChannels(); channelIndex++)
+        for (auto channelIndex = 0; channelIndex < buffer.getNumChannels(); ++channelIndex)
         {
             const std::span channel{
                 buffer.getWritePointer(channelIndex),

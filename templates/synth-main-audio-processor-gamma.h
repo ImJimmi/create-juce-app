@@ -7,6 +7,8 @@
 #include <Gamma/Oscillator.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <span>
+
 class MainAudioProcessor
 {
 public:
@@ -23,7 +25,7 @@ public:
     {
         gam::sampleRate(sampleRate);
 
-        for (auto i = 0; i < 8; i++)
+        for (auto i = 0; i < 8; ++i)
             synth.addVoice(new Voice{}); // NOLINT
 
         synth.addSound(new Sound()); // NOLINT
@@ -32,6 +34,8 @@ public:
 
     void processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
     {
+        audioBuffer.clear();
+
         synth.renderNextBlock(audioBuffer, midiBuffer, 0, audioBuffer.getNumSamples());
 
         if (bypass)
@@ -94,29 +98,37 @@ private:
                 updateFrequency(value, lastNote);
         }
 
-        void controllerMoved([[maybe_unused]] int controller, [[maybe_unused]] int value) override
+        void controllerMoved([[maybe_unused]] int controller,
+                             [[maybe_unused]] int value) override
         {
         }
 
-        void renderNextBlock(juce::AudioBuffer<float>& buffer, int startSample, int numSamples) override
+        void renderNextBlock(juce::AudioBuffer<float>& buffer,
+                             int startSample,
+                             int numSamples) override
         {
             if (!isVoiceActive())
                 return;
 
-            for (auto i = startSample; i < numSamples + startSample; i++)
-            {
-                const auto sample = oscillator() * envelope() * level;
+            const std::span leftChannel{
+                buffer.getWritePointer(0, startSample),
+                static_cast<std::size_t>(numSamples),
+            };
 
-                for (auto channel = 0; channel < buffer.getNumChannels(); channel++)
-                    buffer.addSample(channel, i, sample);
+            for (auto& sample : leftChannel)
+            {
+                sample += oscillator() * envelope() * level;
 
                 if (envelope.done())
                 {
                     clearCurrentNote();
                     lastNote = -1;
-                    return;
+                    break;
                 }
             }
+
+            for (auto channel = 1; channel < buffer.getNumChannels(); ++channel)
+                buffer.copyFrom(channel, startSample, std::data(leftChannel), numSamples);
         }
 
         using juce::SynthesiserVoice::renderNextBlock;

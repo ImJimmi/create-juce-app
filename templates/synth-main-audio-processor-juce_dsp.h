@@ -15,7 +15,7 @@ public:
         , outputGain{ OutputGainParameter::getFrom(apvts) }
         , bypass{ BypassParameter::getFrom(apvts) }
     {
-        for (auto i = 0; i < 8; i++)
+        for (auto i = 0; i < 8; ++i)
             synth.addVoice(new Voice{ processSpec }); // NOLINT
 
         synth.addSound(new Sound{}); // NOLINT
@@ -115,7 +115,7 @@ private:
             const juce::dsp::ProcessContextReplacing<float> context{ block };
             dspChain.process(context);
 
-            for (auto channel = 0; channel < synthBuffer.getNumChannels(); channel++)
+            for (auto channel = 0; channel < synthBuffer.getNumChannels(); ++channel)
                 synthBuffer.addFrom(channel, 0, voiceBuffer, channel, 0, synthBuffer.getNumSamples());
         }
 

@@ -31,7 +31,7 @@ The various prompts will allow you customise almost every aspect of your JUCE pr
 The generator also adds various defaults to get you started, such as:
 
 - Code formatting with [`clang-format`](https://clang.llvm.org/docs/ClangFormat.html)
-- Code linting with [`clang-tidy`](https://clang.llvm.org/extra/clang-tidy/), and [`cppcheck`](https://cppcheck.sourceforge.io/)
+- Code linting with [`clang-tidy`](https://clang.llvm.org/extra/clang-tidy/) (plus [JuceTidy](https://github.com/ImJimmi/JuceTidy) on macOS), and [`cppcheck`](https://cppcheck.sourceforge.io/)
 - [CTest](https://cmake.org/cmake/help/latest/manual/ctest.1.html) integration for all tests
 - [CPack](https://cmake.org/cmake/help/latest/manual/cpack.1.html) integration for building installers
 - APVTS integration for plugins

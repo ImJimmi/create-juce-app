@@ -15,6 +15,7 @@ public:
     {
         gainSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
         gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 75, 21);
+        gainSlider.setTitle("Gain");
         gainSlider.textFromValueFunction = [](double value) {
             return OutputGainParameter::stringFromValue(static_cast<float>(value), 0);
         };
@@ -65,4 +66,6 @@ private:
 
     juce::ToggleButton bypassButton;
     juce::AudioProcessorValueTreeState::ButtonAttachment bypassAttachment;
+
+    JUCE_LEAK_DETECTOR(Editor)
 };

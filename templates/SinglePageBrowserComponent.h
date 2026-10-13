@@ -22,7 +22,11 @@ public:
 
     bool pageAboutToLoad(const juce::String& newURL) final
     {
-        return newURL == localhost || newURL == getResourceProviderRoot();
+        return newURL == getResourceProviderRoot()
+#if JUCE_DEBUG
+            || newURL == localhost
+#endif
+            ;
     }
 
 protected:
@@ -44,31 +48,45 @@ protected:
     }
 
 private:
-    [[nodiscard]] static auto& getFrontendApp()
+    class FrontendApp
     {
-        static const auto currentApplicationFile = juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile);
-
-        static juce::ZipFile zip{
+    public:
+        FrontendApp()
+            : zip{
 #if JUCE_MAC
     #if JucePlugin_Build_LV2
-            currentApplicationFile
-                .getSiblingFile("Resources")
-                .getChildFile("frontend.zip"),
+                currentApplicationFile
+                    .getSiblingFile("Resources")
+                    .getChildFile("frontend.zip"),
     #else
-            currentApplicationFile
-                .getChildFile("Contents")
-                .getChildFile("Resources")
-                .getChildFile("frontend.zip"),
+                currentApplicationFile
+                    .getChildFile("Contents")
+                    .getChildFile("Resources")
+                    .getChildFile("frontend.zip"),
     #endif
 #else
-            currentApplicationFile
-                .getParentDirectory()
-                .getChildFile("frontend.zip")
+                currentApplicationFile
+                    .getParentDirectory()
+                    .getChildFile("frontend.zip")
 #endif
-        };
+            }
+        {
+        }
 
-        return zip;
-    }
+        [[nodiscard]] auto getEntry(const juce::String& url) const
+        {
+            return zip.getEntry(url);
+        }
+
+        [[nodiscard]] auto createStream(const juce::ZipFile::ZipEntry& entry)
+        {
+            return zip.createStreamForEntry(entry);
+        }
+
+    private:
+        const juce::File currentApplicationFile = juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile);
+        juce::ZipFile zip;
+    };
 
     [[nodiscard]] static auto readVector(juce::InputStream& stream)
     {
@@ -186,13 +204,9 @@ private:
                            ? juce::String{ "index.html" }
                            : requestedURL.fromFirstOccurrenceOf("/", false, false);
 
-        auto& frontend = getFrontendApp();
-
-        if (const auto* entry = frontend.getEntry(url))
+        if (const auto* entry = frontend->getEntry(url))
         {
-            const std::unique_ptr<juce::InputStream> stream{
-                frontend.createStreamForEntry(*entry),
-            };
+            const auto stream = juce::rawToUniquePtr(frontend->createStream(*entry));
 
             return Resource{
                 readVector(*stream),
@@ -211,7 +225,10 @@ private:
                                              resourceServer->requestHandler());
         }
 
-        return {};
+        return {
+            .data = {},
+            .mimeType = "application/octet-stream",
+        };
     }
 
     [[nodiscard]] Options getOptions() const
@@ -224,12 +241,20 @@ private:
             .withResourceProvider([this](const auto& url) {
                 return getResource(url);
             },
-                                  juce::URL{ localhost }.getOrigin());
+#if JUCE_DEBUG
+                                  juce::URL{ localhost }.getOrigin()
+#else
+                                  std::nullopt
+#endif
+            );
     }
 
     void useSystemTheme();
 
+    juce::SharedResourcePointer<FrontendApp> frontend;
     std::vector<ResourceServer> resourceServers;
+
+    JUCE_LEAK_DETECTOR(SinglePageBrowserComponent)
 };
 
 #if !JUCE_MAC

@@ -6,6 +6,7 @@
 #include <Gamma/Filter.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <span>
 #include <vector>
 
 class MainAudioProcessor
@@ -35,14 +36,19 @@ public:
         if (bypass)
             return;
 
-        const auto numChannelsToProcess = juce::jmin(buffer.getNumChannels(), numChannels);
+        const auto numChannelsToProcess = std::min(buffer.getNumChannels(), numChannels);
 
-        for (auto channelIndex = 0; channelIndex < numChannelsToProcess; channelIndex++)
+        for (auto channelIndex = 0; channelIndex < numChannelsToProcess; ++channelIndex)
         {
+            const std::span channel{
+                buffer.getWritePointer(channelIndex),
+                static_cast<std::size_t>(buffer.getNumSamples()),
+            };
+
             auto& filter = filters[static_cast<std::size_t>(channelIndex)];
 
-            for (auto i = 0; i < buffer.getNumSamples(); i++)
-                buffer.setSample(channelIndex, i, filter(buffer.getSample(channelIndex, i)));
+            for (auto& sample : channel)
+                sample = filter(sample);
         }
 
         buffer.applyGain(juce::Decibels::decibelsToGain<float>(outputGain));
