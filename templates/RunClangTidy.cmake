@@ -22,6 +22,12 @@ foreach(i RANGE 0 ${last_arg})
         if (LAST_ARG MATCHES ".*(.cache|JuceLibraryCode|submodules|_deps).*|.*.mm")
             cmake_language(EXIT 0)
         endif()
+
+        string(FIND "${LAST_ARG}" "${CLANG_TIDY_BUILD_DIR}/" BUILD_DIR_POSITION)
+
+        if (BUILD_DIR_POSITION EQUAL 0)
+            cmake_language(EXIT 0)
+        endif()
     endif()
 
     set(LAST_ARG ${ARG})

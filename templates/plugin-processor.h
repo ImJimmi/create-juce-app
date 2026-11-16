@@ -2,8 +2,9 @@
 
 #include <VAR_PROJECT_ID/audio/MainAudioProcessor.h>
 #include <VAR_PROJECT_ID/audio/Parameters.h>
-#include <VAR_PROJECT_ID/editor/Editor.h>
+VAR_EDITOR_INCLUDE
 
+VAR_JIVE_INCLUDE
 #include <juce_audio_processors/juce_audio_processors.h>
 
 class Processor : public juce::AudioProcessor
@@ -21,14 +22,11 @@ public:
             apvtsType,
             makeParameters(),
         }
-        , bypass{ BypassParameter::getFrom(apvts) }
-    {
-    }
+        , bypass{ BypassParameter::getFrom(apvts) } { VAR_ATTACH_PARAMETERS }
 
-    JUCE_DECLARE_NON_COPYABLE(Processor)
-    JUCE_DECLARE_NON_MOVEABLE(Processor)
+          JUCE_DECLARE_NON_COPYABLE(Processor) JUCE_DECLARE_NON_MOVEABLE(Processor)
 
-    ~Processor() override = default;
+              ~Processor() override = default;
 
     void prepareToPlay(double sampleRate, int expectedBlockSize) override
     {
@@ -139,7 +137,7 @@ public:
     }
 
 protected:
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override
+    [[nodiscard]] bool isBusesLayoutSupported(const BusesLayout& layouts) const override
     {
         return layouts.getMainOutputChannelSet() == layouts.getMainInputChannelSet()
             && (layouts.getMainInputChannelSet() == juce::AudioChannelSet::mono()
@@ -149,18 +147,14 @@ protected:
 private:
     juce::AudioProcessorEditor* createEditor() override
     {
-        // NOLINTNEXTLINE
-        return new Editor{
-            *this,
-            apvts,
-            VAR_EDITOR_ARG_3
-        };
+        VAR_CREATE_EDITOR
     }
 
     const juce::Identifier apvtsType{ "Parameters" };
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     juce::AudioParameterBool& bypass;
+    VAR_INTERPRETER
 
     std::unique_ptr<MainAudioProcessor> mainAudioProcessor;
 

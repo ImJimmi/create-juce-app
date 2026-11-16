@@ -22,6 +22,7 @@ const otherUnitTestFrameworks = [
 
 const guiAPIs = [
   { guiAPI: "component" },
+  { guiAPI: "jive" },
   { guiAPI: "webview", webFramework: "svelte", webLanguage: "typescript" },
 ];
 const dspAPIs = [

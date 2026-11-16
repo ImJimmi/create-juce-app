@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { addJIVE } from "./dependencies.js";
 import { setVar, templatesDir } from "./utils.js";
 
 export async function populateDesktopSpecificCMakeTemplates(config) {
@@ -16,19 +17,25 @@ export async function populateDesktopSpecificCMakeTemplates(config) {
   );
 
   fs.copyFileSync(
-    path.join(templatesDir, "gui-app-main.cpp"),
+    path.join(
+      templatesDir,
+      config.guiAPI === "jive" ? "gui-app-main-JIVE.cpp" : "gui-app-main.cpp",
+    ),
     path.join(config.projectSourceDir, "main.cpp"),
   );
-  setVar(
-    path.join(config.projectSourceDir, "main.cpp"),
-    "PROJECT_ID",
-    config.projectID,
-  );
-  fs.mkdirSync(path.join(config.projectSourceDir, "gui"));
-  fs.copyFileSync(
-    path.join(templatesDir, "gui-app-window.h"),
-    path.join(config.projectSourceDir, "gui", "Window.h"),
-  );
+
+  if (config.guiAPI !== "jive") {
+    setVar(
+      path.join(config.projectSourceDir, "main.cpp"),
+      "PROJECT_ID",
+      config.projectID,
+    );
+    fs.mkdirSync(path.join(config.projectSourceDir, "gui"));
+    fs.copyFileSync(
+      path.join(templatesDir, "gui-app-window.h"),
+      path.join(config.projectSourceDir, "gui", "Window.h"),
+    );
+  }
   setVar(
     config.projectCMakeLists,
     "SOURCES",
@@ -47,6 +54,23 @@ export async function populateDesktopSpecificCMakeTemplates(config) {
       "JUCE_WEB_BROWSER=0",
     );
     setVar(config.projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_basics");
+  } else if (config.guiAPI === "jive") {
+    setVar(
+      config.projectCMakeLists,
+      "COMPILE_DEFINITIONS",
+      "JUCE_WEB_BROWSER=0",
+    );
+    setVar(config.projectCMakeLists, "LINK_LIBRARIES", "juce::juce_gui_basics");
+    await addJIVE(config);
+    fs.copyFileSync(
+      path.join(templatesDir, "JIVE-Main.xml"),
+      path.join(config.projectDir, "public", "views", "Main.xml"),
+    );
+    setVar(
+      path.join(config.projectDir, "public", "views", "Main.xml"),
+      "PROJECT_NAME",
+      config.projectName,
+    );
   } else if (config.guiAPI === "webview") {
     fs.copyFileSync(
       path.join(templatesDir, "SinglePageBrowserComponent.h"),

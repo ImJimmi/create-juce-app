@@ -1,0 +1,11 @@
+<Window
+    name="VAR_PROJECT_NAME"
+    width="500"
+    height="300"
+    align-items="center"
+    justify-content="center"
+    style="public/styles/Styles.json"
+    padding="0"
+>
+    <Text id="title">VAR_PROJECT_NAME</Text>
+</Window>

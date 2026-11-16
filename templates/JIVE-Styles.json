@@ -1,0 +1,8 @@
+{
+  "font-size": 16,
+
+  "#title": {
+    "font-size": 30,
+    "font-styles": "bold"
+  }
+}

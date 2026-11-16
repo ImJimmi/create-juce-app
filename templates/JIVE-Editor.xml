@@ -1,0 +1,12 @@
+<Editor
+    width="500"
+    height="300"
+    align-items="center"
+    justify-content="center"
+    style="public/styles/Styles.json"
+>
+    <Text id="title">Hello, World!</Text>
+    <Knob parameter="outGain" width="75" height="75" margin="25 0 0 0" />
+    <Text parameter="outGain" margin="0 0 25 0" />
+    <Checkbox parameter="bypass">Bypass?</Checkbox>
+</Editor>

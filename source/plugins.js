@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { addPluginval, addGamma, addTheSTK } from "./dependencies.js";
+import { addPluginval, addGamma, addTheSTK, addJIVE } from "./dependencies.js";
 import { clearUnsetVars, setVar, templatesDir } from "./utils.js";
 
 const pluginEffectCategoriesMap = {
@@ -158,9 +158,54 @@ export async function populatePluginSpecificCMakeTemplates(config) {
     isMidiEffect ? "true" : "false",
   );
 
+  if (config.guiAPI === "jive") {
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "JIVE_INCLUDE",
+      "#include <jive_layouts/jive_layouts.h>",
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "ATTACH_PARAMETERS",
+      "interpreter.autoAttachParameters(apvts);",
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "CREATE_EDITOR",
+      `auto item = interpreter.interpret(jive::SourceFile{ "public/views/Editor.xml" }, this);
+
+        if (dynamic_cast<juce::AudioProcessorEditor*>(item.get()) != nullptr)
+            return dynamic_cast<juce::AudioProcessorEditor*>(item.release());
+
+        // NOLINTNEXTLINE
+        return new juce::GenericAudioProcessorEditor{ *this };`,
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "INTERPRETER",
+      "jive::Interpreter interpreter;",
+    );
+  } else {
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "EDITOR_INCLUDE",
+      `#include <${config.projectID}/editor/Editor.h>`,
+    );
+    setVar(
+      path.join(config.projectSourceDir, "Processor.h"),
+      "CREATE_EDITOR",
+      `// NOLINTNEXTLINE
+        return new Editor{
+            *this,
+            apvts,
+            VAR_EDITOR_ARG_3
+        };`,
+    );
+  }
+
   fs.mkdirSync(path.join(config.projectSourceDir, "audio"));
 
-  if (isSynth && config.guiAPI !== "webview") {
+  if (isSynth && config.guiAPI === "component") {
     setVar(
       path.join(config.projectSourceDir, "Processor.h"),
       "MIDI_KEYBOARD_STATE",
@@ -305,7 +350,8 @@ export async function populatePluginSpecificCMakeTemplates(config) {
     path.join(templatesDir, "plugin-parameters.h"),
     path.join(config.projectSourceDir, "audio", "Parameters.h"),
   );
-  fs.mkdirSync(path.join(config.projectSourceDir, "editor"));
+  if (config.guiAPI !== "jive")
+    fs.mkdirSync(path.join(config.projectSourceDir, "editor"));
   setVar(
     config.projectCMakeLists,
     "SOURCES",
@@ -337,6 +383,17 @@ export async function populatePluginSpecificCMakeTemplates(config) {
       path.join(config.projectSourceDir, "editor", "Editor.h"),
       "PROJECT_ID",
       config.projectID,
+    );
+  } else if (config.guiAPI === "jive") {
+    await addJIVE(config);
+    setVar(
+      config.projectCMakeLists,
+      "COMPILE_DEFINITIONS",
+      "JIVE_IS_PLUGIN_PROJECT=1",
+    );
+    fs.copyFileSync(
+      path.join(templatesDir, "JIVE-Editor.xml"),
+      path.join(config.projectDir, "public", "views", "Editor.xml"),
     );
   } else if (config.guiAPI === "webview") {
     fs.copyFileSync(

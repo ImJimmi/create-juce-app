@@ -382,6 +382,7 @@ async function main() {
       message: "GUI API:",
       choices: [
         { title: "Traditional JUCE Components", value: "component" },
+        { title: "JIVE", value: "jive" },
         { title: "Web front-end", value: "webview" },
       ],
     });

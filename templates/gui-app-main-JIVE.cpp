@@ -1,0 +1,137 @@
+#include <jive_layouts/jive_layouts.h>
+
+class Application : public juce::JUCEApplication
+{
+public:
+    const juce::String getApplicationName() override
+    {
+        return PROJECT_NAME;
+    }
+
+    const juce::String getApplicationVersion() override
+    {
+        return PROJECT_VERSION;
+    }
+
+    void initialise(const juce::String&) override
+    {
+        commandManager.registerAllCommandsForTarget(this);
+        commandManager.getKeyMappings()->resetToDefaultMappings();
+
+        appState = loadAppState();
+
+        window = interpreter.interpret(jive::SourceFile{ "public/views/Main.xml" });
+
+        if (window != nullptr)
+            window->getComponent()->addKeyListener(commandManager.getKeyMappings());
+    }
+
+    void shutdown() override
+    {
+        window = nullptr;
+        saveAppState();
+    }
+
+    void getCommandInfo(juce::CommandID id, juce::ApplicationCommandInfo& info) override
+    {
+        if (id == static_cast<juce::CommandID>(CommandID::save))
+        {
+            info.commandID = id;
+            info.shortName = "Save";
+            info.description = "Save the app's current state to the settings file";
+            info.categoryName = "Application";
+            info.defaultKeypresses = {
+                juce::KeyPress{ 's', juce::ModifierKeys::commandModifier, 0 },
+            };
+            info.flags = juce::ApplicationCommandInfo::readOnlyInKeyEditor;
+        }
+        else
+        {
+            juce::JUCEApplication::getCommandInfo(id, info);
+        }
+    }
+
+    void getAllCommands(juce::Array<juce::CommandID>& commands) override
+    {
+        juce::JUCEApplication::getAllCommands(commands);
+        commands.add(static_cast<juce::CommandID>(CommandID::save));
+    }
+
+    bool perform(const InvocationInfo& invocation) override
+    {
+        if (invocation.commandID == static_cast<juce::CommandID>(CommandID::save))
+        {
+            saveAppState();
+            return true;
+        }
+
+        return juce::JUCEApplication::perform(invocation);
+    }
+
+private:
+    enum class CommandID
+    {
+        save = 0x1337,
+    };
+
+    [[nodiscard]] juce::ValueTree loadAppState() const
+    {
+        if (settingsFile.existsAsFile())
+        {
+            if (auto state = juce::ValueTree::fromXml(settingsFile.loadFileAsString());
+                state.isValid())
+            {
+                DBG("Loaded the app's state from '" << settingsFile.getFullPathName() << "'");
+                return state;
+            }
+        }
+
+        static const juce::Identifier appStateType{ "AppState" };
+        static const juce::Identifier appVersionID{ "app-version" };
+        static const juce::Identifier counterID{ "counter" };
+
+        return {
+            appStateType,
+            {
+                { appVersionID, PROJECT_VERSION },
+                { counterID, 0 },
+            },
+        };
+    }
+
+    void saveAppState() const
+    {
+        if (!settingsFile.deleteFile())
+            jassertfalse;
+
+        if (const auto result = settingsFile.create();
+            result.failed())
+        {
+            DBG(result.getErrorMessage());
+            jassertfalse;
+        }
+
+        auto stream = settingsFile.createOutputStream();
+        jassert(stream != nullptr);
+
+        stream->writeText(appState.toXmlString(juce::XmlElement::TextFormat{}),
+                          true,
+                          true,
+                          juce::NewLine::getDefault());
+
+        DBG("Saved the app's state to '" << settingsFile.getFullPathName() << "'");
+    }
+
+    const juce::File settingsFile{
+        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile(juce::String{ PROJECT_NAME }.replace(" ", "_"))
+            .getChildFile("settings.xml"),
+    };
+    juce::ApplicationCommandManager commandManager;
+    juce::ValueTree appState;
+    jive::Interpreter interpreter;
+    std::unique_ptr<jive::GuiItem> window;
+};
+
+// NOLINTNEXTLINE
+START_JUCE_APPLICATION(Application)

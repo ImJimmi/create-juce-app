@@ -273,3 +273,24 @@ export async function addTheSTK(config) {
   setVar(config.projectCMakeLists, "ADD_THE_STK", "include(STK)");
   setVar(config.projectCMakeLists, "LINK_THE_STK", "stk");
 }
+
+export async function addJIVE(config) {
+  const gitTag = await fetchLatestGitHubTag("ImJimmi/JIVE", "JIVE");
+  await addDependency(config, "JIVE", "ImJimmi", gitTag, "ADD_JIVE");
+
+  setVar(config.projectCMakeLists, "LINK_JIVE", "jive::jive_layouts");
+  setVar(
+    config.projectCMakeLists,
+    "ADD_JIVE_SOURCES",
+    `jive_sources(${config.projectID}\n    SOURCES "public/*"\n)\n`,
+  );
+
+  fs.mkdirSync(path.join(config.projectDir, "public", "views"), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(config.projectDir, "public", "styles"));
+  fs.copyFileSync(
+    path.join(templatesDir, "JIVE-Styles.json"),
+    path.join(config.projectDir, "public", "styles", "Styles.json"),
+  );
+}
